@@ -42,6 +42,15 @@ body {
   color: var(--text);
 }
 
+.route-loading {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  color: #8d97a8;
+  background: #090b0f;
+  font: 500 12px/1.4 ui-sans-serif, system-ui, sans-serif;
+}
+
 button,
 input,
 textarea,

@@ -23,6 +23,9 @@ Open `http://127.0.0.1:5173`. Vite proxies `/ws`, `/terminal`, `/attachments`,
 `/healthz`, and `/project/server` to `127.0.0.1:7331`, so the browser and daemon
 remain same-origin without disabling WebSocket origin verification.
 
+Open `http://127.0.0.1:5173/designs` for the fixture-backed WebUI design lab with
+ten interactive product directions and desktop, tablet, and mobile previews.
+
 Open `http://127.0.0.1:5173/docs` for one test page per supported feature,
 including prerequisites, exact Web UI actions, and expected results.
 
