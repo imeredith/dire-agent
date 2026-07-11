@@ -2,6 +2,7 @@ package capability
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/imeredith/dire-agent/configuration"
 	"github.com/imeredith/dire-agent/extensions"
@@ -20,14 +21,19 @@ func sandboxExtensionSources(input []extensions.Source, scope Scope, mode config
 			continue
 		}
 		workspace := scope.CWD
+		privateWorkspace := false
 		if workspace == "" {
 			workspace = os.TempDir()
+			privateWorkspace = true
 		}
+		workingDirectory := extensionSandboxWorkingDirectory(source.Location)
 		command, args, err := localtools.WrapSandboxedProcess(localtools.ProcessSandbox{
-			Workspace: workspace, Command: source.Command, Args: source.Args,
+			Workspace: workspace, WorkingDirectory: workingDirectory,
+			Command: source.Command, Args: source.Args,
 			ExtraReadPaths:       []string{source.Location},
 			AdditionalWritePaths: scope.AdditionalFolders,
 			AllowNetwork:         mode == configuration.SandboxWorkspace,
+			PrivateWorkspace:     privateWorkspace,
 		})
 		if err != nil {
 			diagnostics = append(diagnostics, Descriptor{
@@ -39,6 +45,19 @@ func sandboxExtensionSources(input []extensions.Source, scope Scope, mode config
 			continue
 		}
 		source.Command, source.Args = command, args
+		source.Sandboxed = true
 	}
 	return result, diagnostics
+}
+
+func extensionSandboxWorkingDirectory(location string) string {
+	info, err := os.Stat(location)
+	if err != nil || info.IsDir() {
+		return location
+	}
+	directory := filepath.Dir(location)
+	if filepath.Base(location) == "plugin.json" && filepath.Base(directory) == ".codex-plugin" {
+		return filepath.Dir(directory)
+	}
+	return directory
 }

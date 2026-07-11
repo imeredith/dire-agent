@@ -47,6 +47,11 @@ jobs:
       - name: Install web dependencies
         run: npm ci --prefix web
 
+      - name: Install Linux sandbox dependency
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes bubblewrap
+
       - name: Test and type-check web UI
         run: |
           npm --prefix web test

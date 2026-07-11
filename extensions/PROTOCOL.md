@@ -10,9 +10,13 @@ The child receives only explicitly configured environment variables unless
 
 The process boundary protects daemon memory and lifecycle. When an adapter is
 launched through the daemon capability registry, Dire Agent also applies the
-configured macOS `sandbox-exec` policy: strict mode denies network access and
-confines writes to the project and temporary directories; workspace mode keeps
-the write boundary while allowing network. Sandbox-off is an explicit setting.
+native process sandbox (`sandbox-exec` on macOS or Bubblewrap on Linux): strict
+mode denies network access and confines writes to the project and temporary
+directories; workspace mode keeps the file boundary while allowing network.
+Linux temporary filesystems are private to each launch. Sandbox-off is an
+explicit setting. Sandboxed launches strip dynamic-loader control variables
+such as `LD_*`, `DYLD_*`, and `GCONV_PATH`, which would otherwise take effect
+before the wrapper establishes confinement.
 
 ## Framing
 

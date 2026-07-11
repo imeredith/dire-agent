@@ -15,15 +15,16 @@ import (
 )
 
 const (
-	defaultSandboxExecutable = "/usr/bin/sandbox-exec"
-	defaultSandboxShell      = "/bin/sh"
+	defaultDarwinSandboxExecutable = "/usr/bin/sandbox-exec"
+	defaultLinuxSandboxExecutable  = "/usr/bin/bwrap"
+	defaultSandboxShell            = "/bin/sh"
 )
 
 // BuiltinOptions controls the executor used by the bash built-in. The zero
 // value is the secure production configuration. The fields are exported to
-// permit a fake sandbox executable and profile builder in hermetic tests.
-// Supplying a custom profile is security-sensitive and should not be necessary
-// in normal use.
+// permit a fake sandbox executable and macOS profile builder in hermetic tests.
+// Supplying a custom executable or profile is security-sensitive and should
+// not be necessary in normal use.
 type BuiltinOptions struct {
 	SandboxExecutable string
 	SandboxProfile    func(workspace string, additionalFolders []string) (string, error)
@@ -32,45 +33,56 @@ type BuiltinOptions struct {
 
 // shellExecutor is deliberately narrower than exec.Cmd. Keeping command
 // construction behind this interface makes it impossible for bashTool to
-// accidentally bypass sandbox-exec in a future code path.
+// accidentally bypass the platform sandbox in a future code path.
 type shellExecutor interface {
 	Run(ctx context.Context, dir, command string, output io.Writer) error
 }
 
 type sandboxExecutor struct {
 	executable string
-	profile    string
+	args       []string
 }
 
 func newSandboxExecutor(workspace string, options BuiltinOptions) (*sandboxExecutor, error) {
-	executable := options.SandboxExecutable
-	if executable == "" {
-		if runtime.GOOS != "darwin" {
-			return nil, fmt.Errorf("tools: bash requires macOS %s; refusing to run without a sandbox", defaultSandboxExecutable)
-		}
-		executable = defaultSandboxExecutable
+	// SandboxProfile is a Darwin-specific test seam. Preserve its historical
+	// sandbox-exec argv contract on every host so existing embedders can use a
+	// fake wrapper without depending on the host operating system.
+	if options.SandboxProfile != nil {
+		return newDarwinSandboxExecutor(workspace, options)
 	}
 
+	executable, args, err := wrapSandboxedProcessForPlatform(runtime.GOOS, options.SandboxExecutable, ProcessSandbox{
+		Workspace:            workspace,
+		WorkingDirectory:     workspace,
+		Command:              defaultSandboxShell,
+		AdditionalWritePaths: options.AdditionalFolders,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("tools: bash sandbox unavailable; refusing to run unsandboxed: %w", err)
+	}
+	return &sandboxExecutor{executable: executable, args: args}, nil
+}
+
+func newDarwinSandboxExecutor(workspace string, options BuiltinOptions) (*sandboxExecutor, error) {
+	executable := options.SandboxExecutable
+	if executable == "" {
+		executable = defaultDarwinSandboxExecutable
+	}
 	resolvedExecutable, err := validateExecutable(executable)
 	if err != nil {
 		return nil, fmt.Errorf("tools: bash sandbox unavailable; refusing to run unsandboxed: %w", err)
 	}
-
-	profileBuilder := options.SandboxProfile
-	var profile string
-	if profileBuilder == nil {
-		profile, err = sandboxProfileWithWritePaths(workspace, nil, options.AdditionalFolders, false)
-	} else {
-		profile, err = profileBuilder(workspace, append([]string(nil), options.AdditionalFolders...))
-	}
+	profile, err := options.SandboxProfile(workspace, append([]string(nil), options.AdditionalFolders...))
 	if err != nil {
 		return nil, fmt.Errorf("tools: build bash sandbox profile: %w", err)
 	}
 	if strings.TrimSpace(profile) == "" {
 		return nil, errors.New("tools: bash sandbox profile is empty; refusing to run unsandboxed")
 	}
-
-	return &sandboxExecutor{executable: resolvedExecutable, profile: profile}, nil
+	return &sandboxExecutor{
+		executable: resolvedExecutable,
+		args:       []string{"-p", profile, defaultSandboxShell},
+	}, nil
 }
 
 func validateExecutable(path string) (string, error) {
@@ -93,10 +105,13 @@ func validateExecutable(path string) (string, error) {
 
 func (e *sandboxExecutor) Run(ctx context.Context, dir, command string, output io.Writer) error {
 	// command is a distinct argv value after -c. It is never interpolated into
-	// the wrapper command, so shell syntax cannot alter the sandbox-exec flags.
+	// the wrapper command, so shell syntax cannot alter the sandbox flags.
 	// A non-login shell also avoids reading a user profile outside the project.
-	cmd := exec.CommandContext(ctx, e.executable, "-p", e.profile, defaultSandboxShell, "-c", command)
+	args := append([]string(nil), e.args...)
+	args = append(args, "-c", command)
+	cmd := exec.CommandContext(ctx, e.executable, args...)
 	cmd.Dir = dir
+	cmd.Env = SanitizeSandboxEnvironment(os.Environ())
 	cmd.Stdout = output
 	cmd.Stderr = output
 	return cmd.Run()

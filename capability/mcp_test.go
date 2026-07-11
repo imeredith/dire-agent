@@ -26,6 +26,9 @@ func TestMCPSourceConnectsCachesAndFiltersTools(t *testing.T) {
 	}})
 	defer source.Close()
 	settings := configuration.DefaultConfig(t.TempDir()).Global
+	// This test supplies a fake transport and exercises caching/filtering, not
+	// host process sandbox discovery.
+	settings.Tools.Sandbox = configuration.SandboxOff
 	settings.MCP.Servers["docs"] = configuration.MCPServer{
 		Transport: configuration.MCPStdio, Command: "/usr/bin/docs-mcp", Enabled: true,
 		Approval: configuration.ApprovalNever,

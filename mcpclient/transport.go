@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/imeredith/dire-agent/internal/sandboxenv"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -46,6 +47,9 @@ func (f DefaultTransportFactory) NewTransport(_ context.Context, cfg ServerConfi
 				base = append(base, "PATH="+path)
 			}
 			cmd.Env = mergeEnvironment(base, cfg.Environment)
+		}
+		if cfg.Sandboxed {
+			cmd.Env = sandboxenv.Sanitize(cmd.Env)
 		}
 		return &mcp.CommandTransport{Command: cmd}, nil
 	case TransportStreamableHTTP:

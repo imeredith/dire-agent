@@ -251,3 +251,6 @@ printf 'Installed dire-agent %s to %s/dire-agent\n' "$version" "$install_dir"
 if ! path_contains "$install_dir"; then
     printf 'Add %s to PATH to run dire-agent (no shell files were modified).\n' "$install_dir"
 fi
+if [ "$os" = linux ] && [ ! -x /usr/bin/bwrap ]; then
+    printf 'Install the bubblewrap package to enable sandboxed bash and local process tools (/usr/bin/bwrap was not found).\n'
+fi
