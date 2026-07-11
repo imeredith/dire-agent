@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"strings"
 
-	"goagentcli/agentloop"
+	"github.com/imeredith/dire-agent/agentloop"
 )
 
 func listTool(paths pathSandbox) agentloop.Tool {

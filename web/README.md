@@ -1,6 +1,6 @@
-# goagent web
+# Dire Agent web
 
-React 19, Tailwind CSS 4, and Vite 8 client for the goagent daemon.
+React 19, Tailwind CSS 4, and Vite 8 client for the Dire Agent daemon.
 
 ## Run locally
 
@@ -8,7 +8,7 @@ Start the daemon from the repository root:
 
 ```sh
 codex login
-go run ./cmd/goagentd
+go run ./cmd/dire-agentd
 ```
 
 In another terminal:
@@ -34,20 +34,20 @@ embedded:
 ```sh
 npm --prefix web install
 make production
-./dist/goagentd
+./dist/dire-agentd
 ```
 
 The application is then available at `http://127.0.0.1:7331`; the Go server
 owns the HTML/assets, WebSocket APIs, terminals, attachments, and health check
 on one origin. The build stages Vite output under `internal/webui/dist`, embeds
 it behind the `webui` Go build tag, and writes the final binary to
-`dist/goagentd`. Both generated directories are ignored by Git.
+`dist/dire-agentd`. Both generated directories are ignored by Git.
 
 To serve an ordinary `web/dist` build without embedding it:
 
 ```sh
 npm run build
-go run ../cmd/goagentd -web-dir ./dist
+go run ../cmd/dire-agentd -web-dir ./dist
 ```
 
 Deep links use an `index.html` SPA fallback. Files below `/assets/` are treated
@@ -65,8 +65,11 @@ The injected compatibility bootstrap preserves the mount when an application
 calls `history.pushState` or `history.replaceState`, and deep-link reloads are
 sent to the upstream server without the mount. For React Router or another
 router that explicitly matches the browser pathname, use
-`window.__GOAGENT_PROJECT_PROXY__.prefix` as its basename. The object also
+`window.__DIRE_AGENT_PROJECT_PROXY__.prefix` as its basename. The object also
 provides a mount-free `pathname` and `rewriteURL` helper.
+
+The legacy `window.__GOAGENT_PROJECT_PROXY__` name remains an alias during the
+rename transition.
 
 Next.js App Router projects should set `basePath` to the complete mount, such as
 `/project/server/5172`. The daemon detects a Next server configured for that
@@ -159,4 +162,4 @@ npm run smoke:daemon
 The daemon currently has no transport authentication. A public HTTPS site also
 cannot safely connect to a local insecure `ws://` endpoint. Keep this client
 local, or put the Go-hosted UI and daemon behind the same authenticated TLS
-reverse proxy. Do not expose `goagentd` directly to an untrusted network.
+reverse proxy. Do not expose `dire-agentd` directly to an untrusted network.

@@ -1,14 +1,23 @@
 package configuration
 
 import (
+	"os"
 	"path/filepath"
 
-	"goagentcli/modelcatalog"
+	"github.com/imeredith/dire-agent/modelcatalog"
 )
 
 // DefaultPath returns the conventional daemon configuration path.
 func DefaultPath(home string) string {
-	return filepath.Join(home, ".goagent", "config.json")
+	path := filepath.Join(home, ".dire-agent", "config.json")
+	if _, err := os.Stat(path); err == nil || !os.IsNotExist(err) {
+		return path
+	}
+	legacy := filepath.Join(home, ".goagent", "config.json")
+	if _, err := os.Stat(legacy); err == nil {
+		return legacy
+	}
+	return path
 }
 
 // DefaultConfig returns safe global defaults. Standalone chat intentionally has

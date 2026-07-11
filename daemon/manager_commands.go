@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"goagentcli/capability"
+	"github.com/imeredith/dire-agent/capability"
 )
 
 type CapabilityCommandInfo struct {

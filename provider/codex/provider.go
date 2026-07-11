@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"goagentcli/agent"
+	"github.com/imeredith/dire-agent/agent"
 )
 
 var (

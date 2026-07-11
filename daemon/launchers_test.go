@@ -13,9 +13,9 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 
-	"goagentcli/configuration"
-	"goagentcli/daemon"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/configuration"
+	"github.com/imeredith/dire-agent/daemon"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 type launcherCommandResponse struct {

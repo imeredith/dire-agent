@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"goagentcli/agent"
-	"goagentcli/capability"
-	"goagentcli/modelcatalog"
-	"goagentcli/skills"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/agent"
+	"github.com/imeredith/dire-agent/capability"
+	"github.com/imeredith/dire-agent/modelcatalog"
+	"github.com/imeredith/dire-agent/skills"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 // ModelInfo describes a model offered to daemon clients. ContextWindow may be

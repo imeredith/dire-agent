@@ -3,9 +3,9 @@ package capability
 import (
 	"os"
 
-	"goagentcli/configuration"
-	"goagentcli/extensions"
-	localtools "goagentcli/tools"
+	"github.com/imeredith/dire-agent/configuration"
+	"github.com/imeredith/dire-agent/extensions"
+	localtools "github.com/imeredith/dire-agent/tools"
 )
 
 func sandboxExtensionSources(input []extensions.Source, scope Scope, mode configuration.SandboxMode) ([]extensions.Source, []Descriptor) {

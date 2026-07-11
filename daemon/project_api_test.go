@@ -14,9 +14,9 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 
-	"goagentcli/client"
-	"goagentcli/daemon"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/client"
+	"github.com/imeredith/dire-agent/daemon"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 func TestProjectIDCommandsAndLegacyThreadAliases(t *testing.T) {

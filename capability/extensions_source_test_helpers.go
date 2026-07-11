@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"goagentcli/extensions"
+	"github.com/imeredith/dire-agent/extensions"
 )
 
 type fakeExtensionConnector struct {

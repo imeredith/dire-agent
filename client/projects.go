@@ -3,9 +3,9 @@ package client
 import (
 	"context"
 
-	"goagentcli/configuration"
-	"goagentcli/daemon"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/configuration"
+	"github.com/imeredith/dire-agent/daemon"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 type LaunchProjectAppResult struct {

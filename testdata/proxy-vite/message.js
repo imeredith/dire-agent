@@ -1,1 +1,1 @@
-export const message = "GOAGENT_PROXY_HMR_ONE";
+export const message = "DIRE_AGENT_PROXY_HMR_ONE";

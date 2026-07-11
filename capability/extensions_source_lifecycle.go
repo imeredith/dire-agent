@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"goagentcli/extensions"
+	"github.com/imeredith/dire-agent/extensions"
 )
 
 func (s *ExtensionSource) clientFor(ctx context.Context, slot, fingerprint string, launch extensions.LaunchConfig) (*extensions.Client, error) {

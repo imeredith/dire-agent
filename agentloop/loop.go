@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"goagentcli/agent"
+	"github.com/imeredith/dire-agent/agent"
 )
 
 // Tool is a model-callable capability.

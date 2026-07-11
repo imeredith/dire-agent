@@ -10,8 +10,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
-	"goagentcli/daemon"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/daemon"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 type transcriptEntry struct {

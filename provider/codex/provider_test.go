@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"goagentcli/agent"
+	"github.com/imeredith/dire-agent/agent"
 )
 
 func TestDirectResponsesRequest(t *testing.T) {

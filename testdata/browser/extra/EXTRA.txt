@@ -1,4 +1,4 @@
-GOAGENT_ADDITIONAL_SANDBOX_OK
+DIRE_AGENT_ADDITIONAL_SANDBOX_OK
 
 This file lives outside the browser test project's main folder and is used to
 verify explicitly included sandbox folders.

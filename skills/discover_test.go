@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"goagentcli/skills"
+	"github.com/imeredith/dire-agent/skills"
 )
 
 func TestDiscoverScopesAncestorCompatibilityAndPrecedence(t *testing.T) {

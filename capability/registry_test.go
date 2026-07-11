@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"goagentcli/configuration"
+	"github.com/imeredith/dire-agent/configuration"
 )
 
 type recordingSettingsStore struct{ id string }

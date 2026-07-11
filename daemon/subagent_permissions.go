@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"goagentcli/threadstore"
-	"goagentcli/tools"
+	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/imeredith/dire-agent/tools"
 )
 
 // effectiveSubagentTools reapplies the entire ancestry chain on every

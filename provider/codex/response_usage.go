@@ -3,8 +3,8 @@ package codex
 import (
 	"strings"
 
-	"goagentcli/agent"
-	"goagentcli/modelcatalog"
+	"github.com/imeredith/dire-agent/agent"
+	"github.com/imeredith/dire-agent/modelcatalog"
 )
 
 func (u responsesUsage) agentUsage(contextWindow int64) agent.Usage {

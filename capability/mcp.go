@@ -12,10 +12,10 @@ import (
 	"strings"
 	"sync"
 
-	"goagentcli/agentloop"
-	"goagentcli/configuration"
-	"goagentcli/mcpclient"
-	localtools "goagentcli/tools"
+	"github.com/imeredith/dire-agent/agentloop"
+	"github.com/imeredith/dire-agent/configuration"
+	"github.com/imeredith/dire-agent/mcpclient"
+	localtools "github.com/imeredith/dire-agent/tools"
 )
 
 type mcpPool interface {
@@ -144,7 +144,7 @@ func mcpConfigs(scope Scope, settings configuration.Settings) ([]mcpclient.Serve
 		server := input[name]
 		servers[name] = server
 		if recursiveMCP(server) {
-			denied = append(denied, Descriptor{Name: "mcp:" + name, Source: "mcp", Status: "recursive_denied", Description: "The outward GoAgent desktop bridge cannot be registered as an inward MCP server."})
+			denied = append(denied, Descriptor{Name: "mcp:" + name, Source: "mcp", Status: "recursive_denied", Description: "The outward Dire Agent desktop bridge cannot be registered as an inward MCP server."})
 			continue
 		}
 		config := mcpclient.ServerConfig{
@@ -188,7 +188,8 @@ func recursiveMCP(server configuration.MCPServer) bool {
 		return false
 	}
 	name := strings.ToLower(filepath.Base(strings.TrimSpace(server.Command)))
-	return name == "goagent-mcp" || name == "goagent-mcp.exe"
+	return name == "dire-agent-mcp" || name == "dire-agent-mcp.exe" ||
+		name == "goagent-mcp" || name == "goagent-mcp.exe"
 }
 
 func cloneStringsMap(input map[string]string) map[string]string {

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"goagentcli/agent"
+	"github.com/imeredith/dire-agent/agent"
 )
 
 type Thread struct {

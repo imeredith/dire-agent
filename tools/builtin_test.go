@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"goagentcli/tools"
+	"github.com/imeredith/dire-agent/tools"
 )
 
 func TestReadWriteEditAndPathConfinement(t *testing.T) {

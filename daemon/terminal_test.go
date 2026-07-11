@@ -14,9 +14,9 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 
-	"goagentcli/configuration"
-	"goagentcli/daemon"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/configuration"
+	"github.com/imeredith/dire-agent/daemon"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 func TestTerminalWebSocketStartsInProjectAndRejectsChats(t *testing.T) {
@@ -50,12 +50,12 @@ func TestTerminalWebSocketStartsInProjectAndRejectsChats(t *testing.T) {
 	}
 	defer connection.CloseNow()
 	if err := wsjson.Write(ctx, connection, map[string]any{
-		"type": "input", "data": "printf 'GOAGENT_CWD=%s\\nGOAGENT_COLOR=%s|%s|%s\\n' \"$PWD\" \"$TERM\" \"$COLORTERM\" \"${NO_COLOR-unset}\"; exit\n",
+		"type": "input", "data": "printf 'DIRE_AGENT_CWD=%s\\nDIRE_AGENT_COLOR=%s|%s|%s\\n' \"$PWD\" \"$TERM\" \"$COLORTERM\" \"${NO_COLOR-unset}\"; exit\n",
 	}); err != nil {
 		t.Fatal(err)
 	}
 	var output strings.Builder
-	for !strings.Contains(output.String(), "GOAGENT_CWD="+project.CWD) {
+	for !strings.Contains(output.String(), "DIRE_AGENT_CWD="+project.CWD) {
 		var message struct {
 			Type string `json:"type"`
 			Data string `json:"data"`
@@ -71,7 +71,7 @@ func TestTerminalWebSocketStartsInProjectAndRejectsChats(t *testing.T) {
 			output.Write(decoded)
 		}
 	}
-	if !strings.Contains(output.String(), "GOAGENT_COLOR=xterm-256color|truecolor|unset") {
+	if !strings.Contains(output.String(), "DIRE_AGENT_COLOR=xterm-256color|truecolor|unset") {
 		t.Fatalf("terminal did not advertise true color or inherited NO_COLOR: output=%q", output.String())
 	}
 

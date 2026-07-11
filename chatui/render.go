@@ -6,7 +6,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 func (m *model) resize(width, height int) {
@@ -148,7 +148,7 @@ func (m model) View() tea.View {
 	if m.running {
 		state, statusStyle = "● running", m.styles.status
 	}
-	header := m.styles.header.Render("goagent") + "  " + m.styles.system.Render(m.thread.ID)
+	header := m.styles.header.Render("Dire Agent") + "  " + m.styles.system.Render(m.thread.ID)
 	meta := statusStyle.Render(state) + m.styles.system.Render("  "+m.thread.Model+"  thinking:"+m.thread.ThinkingLevel)
 	status := m.styles.status.Render(m.status)
 	if m.lastErr != "" {
@@ -167,7 +167,7 @@ func (m model) View() tea.View {
 	content := strings.Join(sections, "\n")
 	view := tea.NewView(content)
 	view.AltScreen = true
-	view.WindowTitle = "goagent · " + m.thread.ID
+	view.WindowTitle = "Dire Agent · " + m.thread.ID
 	if cursor := m.textarea.Cursor(); cursor != nil {
 		cursor.Position.Y += 4 + m.viewport.Height() + m.completionRows()
 		view.Cursor = cursor

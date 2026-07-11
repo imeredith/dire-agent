@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"goagentcli/agent"
+	"github.com/imeredith/dire-agent/agent"
 )
 
 type responsesRequest struct {

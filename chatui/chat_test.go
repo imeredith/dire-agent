@@ -9,11 +9,11 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"goagentcli/agent"
-	"goagentcli/agentteam"
-	"goagentcli/capability"
-	"goagentcli/daemon"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/agent"
+	"github.com/imeredith/dire-agent/agentteam"
+	"github.com/imeredith/dire-agent/capability"
+	"github.com/imeredith/dire-agent/daemon"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 func TestSlashCommandCompletion(t *testing.T) {

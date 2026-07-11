@@ -11,8 +11,8 @@ import (
 	"runtime"
 	"strings"
 
-	"goagentcli/configuration"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/configuration"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 func projectLaunchers(
@@ -157,13 +157,16 @@ func launchProjectDesktopApplication(
 }
 
 func projectApplicationEnvironment(base []string, projectID string) []string {
-	environment := make([]string, 0, len(base)+1)
+	environment := make([]string, 0, len(base)+2)
 	for _, entry := range base {
 		name, _, found := strings.Cut(entry, "=")
-		if found && strings.EqualFold(name, "GOAGENT_PROJECT_ID") {
+		if found && (strings.EqualFold(name, "DIRE_AGENT_PROJECT_ID") || strings.EqualFold(name, "GOAGENT_PROJECT_ID")) {
 			continue
 		}
 		environment = append(environment, entry)
 	}
-	return append(environment, "GOAGENT_PROJECT_ID="+projectID)
+	return append(environment,
+		"DIRE_AGENT_PROJECT_ID="+projectID,
+		"GOAGENT_PROJECT_ID="+projectID,
+	)
 }

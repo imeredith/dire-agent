@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"goagentcli/agent"
-	"goagentcli/client"
-	"goagentcli/daemon"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/agent"
+	"github.com/imeredith/dire-agent/client"
+	"github.com/imeredith/dire-agent/daemon"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 func TestWebSocketAgentLoopAndProjectPersistence(t *testing.T) {

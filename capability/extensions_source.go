@@ -6,10 +6,10 @@ import (
 	"sort"
 	"sync"
 
-	"goagentcli/agentloop"
-	"goagentcli/configuration"
-	"goagentcli/extensions"
-	"goagentcli/skills"
+	"github.com/imeredith/dire-agent/agentloop"
+	"github.com/imeredith/dire-agent/configuration"
+	"github.com/imeredith/dire-agent/extensions"
+	"github.com/imeredith/dire-agent/skills"
 )
 
 type ExtensionDiscoverer func(context.Context, extensions.DiscoverOptions) (extensions.Catalog, error)

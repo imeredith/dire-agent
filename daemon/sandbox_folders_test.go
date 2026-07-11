@@ -9,9 +9,9 @@ import (
 	"sync"
 	"testing"
 
-	"goagentcli/agent"
-	"goagentcli/daemon"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/agent"
+	"github.com/imeredith/dire-agent/daemon"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 type recordingProvider struct {

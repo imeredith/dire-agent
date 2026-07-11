@@ -8,8 +8,8 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"goagentcli/configuration"
-	"goagentcli/mcpclient"
+	"github.com/imeredith/dire-agent/configuration"
+	"github.com/imeredith/dire-agent/mcpclient"
 )
 
 func TestMCPSourceConnectsCachesAndFiltersTools(t *testing.T) {
@@ -58,7 +58,7 @@ func TestMCPSourceRequiresApprovalAndRejectsRecursiveBridge(t *testing.T) {
 	defer source.Close()
 	settings := configuration.DefaultConfig(t.TempDir()).Global
 	settings.MCP.Servers["self"] = configuration.MCPServer{
-		Transport: configuration.MCPStdio, Command: "goagent-mcp", Enabled: true,
+		Transport: configuration.MCPStdio, Command: "dire-agent-mcp", Enabled: true,
 		Approval: configuration.ApprovalNever,
 	}
 	fragment, err := source.Resolve(context.Background(), Scope{ConversationID: "chat_1", Kind: "chat"}, settings)
@@ -67,6 +67,28 @@ func TestMCPSourceRequiresApprovalAndRejectsRecursiveBridge(t *testing.T) {
 	}
 	if len(fragment.Tools) != 0 || !hasDescriptorStatus(fragment.Descriptors, "recursive_denied") {
 		t.Fatalf("fragment = %+v", fragment)
+	}
+}
+
+func TestRecursiveMCPRejectsCurrentAndLegacyBridgeNames(t *testing.T) {
+	t.Parallel()
+	for _, command := range []string{
+		"dire-agent-mcp",
+		"/usr/local/bin/dire-agent-mcp",
+		"dire-agent-mcp.exe",
+		"goagent-mcp",
+		"/usr/local/bin/goagent-mcp",
+		"goagent-mcp.exe",
+	} {
+		if !recursiveMCP(configuration.MCPServer{Transport: configuration.MCPStdio, Command: command}) {
+			t.Errorf("recursiveMCP(%q) = false", command)
+		}
+	}
+	if recursiveMCP(configuration.MCPServer{Transport: configuration.MCPStdio, Command: "other-mcp"}) {
+		t.Fatal("recursiveMCP accepted an unrelated stdio server")
+	}
+	if recursiveMCP(configuration.MCPServer{Transport: configuration.MCPStreamableHTTP, Command: "dire-agent-mcp"}) {
+		t.Fatal("recursiveMCP rejected a non-stdio server")
 	}
 }
 

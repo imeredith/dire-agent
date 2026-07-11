@@ -16,23 +16,23 @@ import (
 	"syscall"
 	"time"
 
-	"goagentcli/capability"
-	"goagentcli/configuration"
-	"goagentcli/daemon"
-	"goagentcli/internal/webui"
-	"goagentcli/provider/codex"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/capability"
+	"github.com/imeredith/dire-agent/configuration"
+	"github.com/imeredith/dire-agent/daemon"
+	"github.com/imeredith/dire-agent/internal/webui"
+	"github.com/imeredith/dire-agent/provider/codex"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, "goagentd:", err)
+		fmt.Fprintln(os.Stderr, "dire-agentd:", err)
 		os.Exit(1)
 	}
 }
 
 func run(arguments []string) error {
-	flags := flag.NewFlagSet("goagentd", flag.ContinueOnError)
+	flags := flag.NewFlagSet("dire-agentd", flag.ContinueOnError)
 	address := flags.String("addr", "127.0.0.1:7331", "HTTP/WebSocket listen address")
 	dataDirectory := flags.String("data-dir", "", "directory containing one SQLite file per project")
 	configPath := flags.String("config", "", "versioned daemon configuration file")
@@ -146,7 +146,7 @@ func run(arguments []string) error {
 		if *projectProxy {
 			proxyStatus = "/project/server/{port}"
 		}
-		fmt.Fprintf(os.Stderr, "goagentd listening on http://%s (projects: %s, config: %s, web: %s, project proxy: %s)\n", *address, store.Directory(), configStore.Path(), webStatus, proxyStatus)
+		fmt.Fprintf(os.Stderr, "dire-agentd listening on http://%s (projects: %s, config: %s, web: %s, project proxy: %s)\n", *address, store.Directory(), configStore.Path(), webStatus, proxyStatus)
 		serverErrors <- server.ListenAndServe()
 	}()
 
@@ -198,13 +198,16 @@ func loadWebUI(directory string) (fs.FS, string, error) {
 }
 
 func defaultDataDirectory(home string) string {
-	projects := filepath.Join(home, ".goagent", "projects")
-	if info, err := os.Stat(projects); err == nil && info.IsDir() {
-		return projects
-	}
-	legacy := filepath.Join(home, ".goagent", "threads")
-	if info, err := os.Stat(legacy); err == nil && info.IsDir() {
-		return legacy
+	projects := filepath.Join(home, ".dire-agent", "projects")
+	for _, candidate := range []string{
+		projects,
+		filepath.Join(home, ".dire-agent", "threads"),
+		filepath.Join(home, ".goagent", "projects"),
+		filepath.Join(home, ".goagent", "threads"),
+	} {
+		if info, err := os.Stat(candidate); err == nil && info.IsDir() {
+			return candidate
+		}
 	}
 	return projects
 }

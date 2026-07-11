@@ -5,9 +5,9 @@ package capability
 import (
 	"context"
 
-	"goagentcli/agentloop"
-	"goagentcli/configuration"
-	"goagentcli/skills"
+	"github.com/imeredith/dire-agent/agentloop"
+	"github.com/imeredith/dire-agent/configuration"
+	"github.com/imeredith/dire-agent/skills"
 )
 
 // Scope is the minimum conversation context a capability may inspect.

@@ -7,13 +7,13 @@ import (
 	"strconv"
 	"strings"
 
-	"goagentcli/agentloop"
-	"goagentcli/agentteam"
-	"goagentcli/capability"
-	"goagentcli/configuration"
-	"goagentcli/skills"
-	"goagentcli/threadstore"
-	"goagentcli/tools"
+	"github.com/imeredith/dire-agent/agentloop"
+	"github.com/imeredith/dire-agent/agentteam"
+	"github.com/imeredith/dire-agent/capability"
+	"github.com/imeredith/dire-agent/configuration"
+	"github.com/imeredith/dire-agent/skills"
+	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/imeredith/dire-agent/tools"
 )
 
 func (m *Manager) resolveCapabilities(ctx context.Context, resource threadstore.Thread) (capability.Snapshot, error) {

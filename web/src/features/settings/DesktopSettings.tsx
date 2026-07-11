@@ -46,7 +46,7 @@ export function DesktopSettings(props: { value: DesktopSettingsValue; onChange: 
           <div className="guide-icon chatgpt">AI</div>
           <div>
             <strong>ChatGPT desktop</strong>
-            <p>Add the goagent Streamable HTTP MCP endpoint from ChatGPT's connector settings when the bridge is enabled. Local stdio servers remain available to Codex through the generated plugin configuration.</p>
+            <p>Add the Dire Agent Streamable HTTP MCP endpoint from ChatGPT's connector settings when the bridge is enabled. Local stdio servers remain available to Codex through the generated plugin configuration.</p>
             <a href="https://learn.chatgpt.com/docs/extend/mcp" target="_blank" rel="noreferrer">MCP setup guide <ExternalLink size={12} /></a>
           </div>
         </article>

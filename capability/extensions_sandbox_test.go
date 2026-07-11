@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"goagentcli/configuration"
-	"goagentcli/extensions"
+	"github.com/imeredith/dire-agent/configuration"
+	"github.com/imeredith/dire-agent/extensions"
 )
 
 func TestTrustedExtensionProcessIsSandboxWrapped(t *testing.T) {

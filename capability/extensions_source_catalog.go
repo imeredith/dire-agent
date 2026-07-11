@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strings"
 
-	"goagentcli/agentloop"
-	"goagentcli/configuration"
-	"goagentcli/extensions"
+	"github.com/imeredith/dire-agent/agentloop"
+	"github.com/imeredith/dire-agent/configuration"
+	"github.com/imeredith/dire-agent/extensions"
 )
 
 type remoteExtensionSetting struct {

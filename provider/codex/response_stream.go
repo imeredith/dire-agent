@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strings"
 
-	"goagentcli/agent"
+	"github.com/imeredith/dire-agent/agent"
 )
 
 func readResponseStream(ctx context.Context, reader io.Reader, onEvent func(agent.ModelEvent)) (streamResult, error) {

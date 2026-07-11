@@ -12,6 +12,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { compactEndpoint, compactPath, relativeTime } from "../lib/display";
 import type { ConnectionStatus, Conversation } from "../lib/protocol";
+import { readAppStorage, removeAppStorage, writeAppStorage } from "../lib/storage";
 
 export type AppView = "conversation" | "settings";
 
@@ -35,7 +36,7 @@ interface SidebarProps {
 export function AppSidebar(props: SidebarProps) {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState(() =>
-    localStorage.getItem("goagent.project.categoryFilter") || ALL_CATEGORIES);
+    readAppStorage("project.categoryFilter") || ALL_CATEGORIES);
   const filter = search.trim().toLowerCase();
   const chats = useMemo(() => filterResources(props.chats, filter), [props.chats, filter]);
   const categories = useMemo(() => projectCategories(props.projects), [props.projects]);
@@ -49,8 +50,8 @@ export function AppSidebar(props: SidebarProps) {
   useEffect(() => {
     if (props.projects.length > 0 && categoryFilter !== ALL_CATEGORIES && !categories.some((category) => category.key === categoryFilter)) {
       setCategoryFilter(ALL_CATEGORIES);
-      localStorage.setItem("goagent.project.categoryFilter", ALL_CATEGORIES);
-      localStorage.removeItem("goagent.project.category");
+      writeAppStorage("project.categoryFilter", ALL_CATEGORIES);
+      removeAppStorage("project.category");
     }
   }, [categories, categoryFilter, props.projects.length]);
 
@@ -64,10 +65,10 @@ export function AppSidebar(props: SidebarProps) {
 
   const selectCategory = (value: string) => {
     setCategoryFilter(value);
-    localStorage.setItem("goagent.project.categoryFilter", value);
+    writeAppStorage("project.categoryFilter", value);
     const category = categories.find((item) => item.key === value)?.value;
-    if (category) localStorage.setItem("goagent.project.category", category);
-    else localStorage.removeItem("goagent.project.category");
+    if (category) writeAppStorage("project.category", category);
+    else removeAppStorage("project.category");
     if (value !== ALL_CATEGORIES) {
       const visible = props.projects.filter((project) => projectCategoryKey(project.category) === value);
       const selectedProject = props.projects.find((project) => project.id === props.selectedID);
@@ -83,7 +84,7 @@ export function AppSidebar(props: SidebarProps) {
       <aside className={`app-sidebar flex h-full min-h-0 flex-col overflow-hidden border-r border-white/10 bg-panel px-3 pt-3.5 pb-3 ${props.open ? "open" : ""}`} aria-label="Workspace navigation">
         <div className="sidebar-brand flex min-h-10 items-center gap-2.5 px-1 pb-3">
           <div className="brand-mark"><TerminalSquare size={19} /></div>
-          <div><strong>goagent</strong><span>agent control plane</span></div>
+          <div><strong>Dire Agent</strong><span>agent control plane</span></div>
           <button className="icon-button sidebar-close" onClick={props.onClose} aria-label="Close navigation"><X size={17} /></button>
         </div>
 

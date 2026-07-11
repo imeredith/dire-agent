@@ -128,7 +128,7 @@ describe("App conversations", () => {
   it("preserves the saved conversation while initial lists are loading", async () => {
     mockState.chats = [chatFixture];
     mockState.projects = [projectFixture];
-    localStorage.setItem("goagent.conversation", projectFixture.id);
+    localStorage.setItem("dire-agent.conversation", projectFixture.id);
 
     render(<App />);
 

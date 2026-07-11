@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"goagentcli/tools"
+	"github.com/imeredith/dire-agent/tools"
 )
 
 func TestBashUsesInjectedSandboxExecutableAndProfile(t *testing.T) {
@@ -169,7 +169,7 @@ func TestDarwinSandboxExecConfinesWrites(t *testing.T) {
 	if pathWithinAny(outsideBase, []string{os.TempDir(), root}) {
 		t.Skip("test checkout is within an allowed temporary path")
 	}
-	outside := filepath.Join(outsideBase, fmt.Sprintf(".goagentcli-sandbox-write-%d", os.Getpid()))
+	outside := filepath.Join(outsideBase, fmt.Sprintf(".dire-agent-sandbox-write-%d", os.Getpid()))
 	_ = os.Remove(outside)
 	t.Cleanup(func() { _ = os.Remove(outside) })
 	command := "printf escaped > " + shellQuote(outside)

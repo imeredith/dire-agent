@@ -66,7 +66,7 @@ func Open(ctx context.Context, config LaunchConfig, options OpenOptions) (*Clien
 	}
 	peer := options.Client
 	if peer.Name == "" {
-		peer = PeerInfo{Name: "goagent", Version: "1"}
+		peer = PeerInfo{Name: "dire-agent", Version: "1"}
 	}
 	lifetime, cancel := context.WithCancel(ctx)
 	connection, err := connector.Connect(lifetime, config.Process, limits)

@@ -9,8 +9,8 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"goagentcli/agent"
-	"goagentcli/agentloop"
+	"github.com/imeredith/dire-agent/agent"
+	"github.com/imeredith/dire-agent/agentloop"
 )
 
 type discoveredTool struct {

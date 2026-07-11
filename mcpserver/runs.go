@@ -8,17 +8,17 @@ import (
 )
 
 func (s *Server) addRunTools() {
-	mcp.AddTool(s.server, &mcp.Tool{Name: "goagent_get_conversation", Description: "Get metadata for one standalone chat or project."},
+	mcp.AddTool(s.server, &mcp.Tool{Name: "dire_agent_get_conversation", Description: "Get metadata for one standalone chat or project."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input conversationInput) (*mcp.CallToolResult, any, error) {
 			value, err := s.daemon.Conversation(ctx, input.ConversationID)
 			return toolResult(value, err)
 		})
-	mcp.AddTool(s.server, &mcp.Tool{Name: "goagent_get_state", Description: "Get run, queue, usage, context, skill, and capability state for a conversation."},
+	mcp.AddTool(s.server, &mcp.Tool{Name: "dire_agent_get_state", Description: "Get run, queue, usage, context, skill, and capability state for a conversation."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input conversationInput) (*mcp.CallToolResult, any, error) {
 			value, err := s.daemon.State(ctx, input.ConversationID)
 			return toolResult(value, err)
 		})
-	mcp.AddTool(s.server, &mcp.Tool{Name: "goagent_get_messages", Description: "Read persisted user, assistant, and tool messages for a conversation."},
+	mcp.AddTool(s.server, &mcp.Tool{Name: "dire_agent_get_messages", Description: "Read persisted user, assistant, and tool messages for a conversation."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input messagesInput) (*mcp.CallToolResult, any, error) {
 			if input.Limit == 0 {
 				input.Limit = 200
@@ -26,12 +26,12 @@ func (s *Server) addRunTools() {
 			value, err := s.daemon.Messages(ctx, input.ConversationID, input.After, input.Limit)
 			return toolResult(value, err)
 		})
-	mcp.AddTool(s.server, &mcp.Tool{Name: "goagent_send_message", Description: "Send a message to a GoAgent conversation and, by default, wait for the agentic run to settle."},
+	mcp.AddTool(s.server, &mcp.Tool{Name: "dire_agent_send_message", Description: "Send a message to a Dire Agent conversation and, by default, wait for the agentic run to settle."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input sendInput) (*mcp.CallToolResult, any, error) {
 			value, err := s.send(ctx, input)
 			return toolResult(value, err)
 		})
-	mcp.AddTool(s.server, &mcp.Tool{Name: "goagent_abort", Description: "Abort the active agentic run for a conversation."},
+	mcp.AddTool(s.server, &mcp.Tool{Name: "dire_agent_abort", Description: "Abort the active agentic run for a conversation."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input conversationInput) (*mcp.CallToolResult, any, error) {
 			err := s.daemon.Abort(ctx, input.ConversationID)
 			return toolResult(map[string]bool{"aborted": err == nil}, err)

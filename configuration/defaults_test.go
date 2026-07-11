@@ -1,9 +1,39 @@
 package configuration
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 )
+
+func TestDefaultPathPrefersDireAgentAndFallsBackToGoAgent(t *testing.T) {
+	t.Parallel()
+	home := t.TempDir()
+	current := filepath.Join(home, ".dire-agent", "config.json")
+	legacy := filepath.Join(home, ".goagent", "config.json")
+
+	if got := DefaultPath(home); got != current {
+		t.Fatalf("empty home config path = %q, want %q", got, current)
+	}
+	if err := os.MkdirAll(filepath.Dir(legacy), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(legacy, []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := DefaultPath(home); got != legacy {
+		t.Fatalf("legacy config path = %q, want %q", got, legacy)
+	}
+	if err := os.MkdirAll(filepath.Dir(current), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(current, []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := DefaultPath(home); got != current {
+		t.Fatalf("current config path = %q, want %q", got, current)
+	}
+}
 
 func TestDefaultConfigIsValidAndIndependent(t *testing.T) {
 	home := t.TempDir()

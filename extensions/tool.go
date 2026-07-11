@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"goagentcli/agent"
-	"goagentcli/agentloop"
+	"github.com/imeredith/dire-agent/agent"
+	"github.com/imeredith/dire-agent/agentloop"
 )
 
 type agentTool struct {

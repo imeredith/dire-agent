@@ -7,6 +7,7 @@ import {
   type ConversationState,
 } from "../lib/conversation";
 import { unsupported, type DaemonClient } from "../lib/daemon-client";
+import { writeAppStorage } from "../lib/storage";
 import {
   addUsage,
   attachmentHTTPURL,
@@ -184,7 +185,7 @@ export function useConversationSession(options: SessionOptions): ConversationSes
       setCapabilities(emptyCapabilities);
       return;
     }
-    localStorage.setItem("goagent.conversation", selected.id);
+    writeAppStorage("conversation", selected.id);
     const key = keyFor(selected.id);
     if (activeSelection.current !== key) {
       if (activeSelection.current && !historyLoadingRef.current) {

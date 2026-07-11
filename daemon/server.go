@@ -18,7 +18,7 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 
-	"goagentcli/configuration"
+	"github.com/imeredith/dire-agent/configuration"
 )
 
 type Server struct {
@@ -134,9 +134,8 @@ func (s *Server) handleAttachment(writer http.ResponseWriter, request *http.Requ
 		http.NotFound(writer, request)
 		return
 	}
-	path := filepath.Join(project.CWD, ".goagent", "attachments", parts[1])
-	info, err := os.Lstat(path)
-	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
+	path, info, found := existingAttachmentPath(project.CWD, parts[1])
+	if !found {
 		http.NotFound(writer, request)
 		return
 	}
@@ -161,6 +160,27 @@ func (s *Server) handleAttachment(writer http.ResponseWriter, request *http.Requ
 	writer.Header().Set("Cache-Control", "private, max-age=31536000, immutable")
 	writer.Header().Set("Content-Disposition", "inline")
 	http.ServeContent(writer, request, parts[1], info.ModTime(), file)
+}
+
+func existingAttachmentPath(projectRoot, name string) (string, os.FileInfo, bool) {
+	for _, directory := range []string{".dire-agent", ".goagent"} {
+		namespace := filepath.Join(projectRoot, directory)
+		attachments := filepath.Join(namespace, "attachments")
+		if !safeAttachmentDirectory(namespace) || !safeAttachmentDirectory(attachments) {
+			continue
+		}
+		path := filepath.Join(attachments, name)
+		info, err := os.Lstat(path)
+		if err == nil && info.Mode().IsRegular() && info.Mode()&os.ModeSymlink == 0 {
+			return path, info, true
+		}
+	}
+	return "", nil, false
+}
+
+func safeAttachmentDirectory(path string) bool {
+	info, err := os.Lstat(path)
+	return err == nil && info.IsDir() && info.Mode()&os.ModeSymlink == 0
 }
 
 func (s *Server) handleWebSocket(writer http.ResponseWriter, request *http.Request) {

@@ -10,10 +10,10 @@ import (
 	"sort"
 	"strings"
 
-	"goagentcli/agentteam"
-	"goagentcli/configuration"
-	"goagentcli/threadstore"
-	"goagentcli/tools"
+	"github.com/imeredith/dire-agent/agentteam"
+	"github.com/imeredith/dire-agent/configuration"
+	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/imeredith/dire-agent/tools"
 )
 
 var validAgentName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$`)

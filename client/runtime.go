@@ -3,8 +3,8 @@ package client
 import (
 	"context"
 
-	"goagentcli/daemon"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/daemon"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 func (c *Client) Prompt(ctx context.Context, threadID, message, streamingBehavior string) error {

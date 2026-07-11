@@ -156,7 +156,7 @@ Attach sandbox-owned image input to a new project prompt:
 Images are supported only when starting an idle top-level project. The daemon
 accepts PNG, JPEG, WebP, and GIF; limits each image to 5 MiB, accepts four at
 most, caps the combined decoded size at 10 MiB, and writes generated filenames
-under `<project>/.goagent/attachments`. Stored user-message data contains only
+under `<project>/.dire-agent/attachments`. Stored user-message data contains only
 `name`, `mime_type`, `file`, and `size`, never the inbound base64 field.
 
 While a conversation is running:
@@ -457,6 +457,6 @@ folder set. Remote MCP calls are outside that filesystem boundary.
 - Extension UI/settings/tool-renderer registrations and bundled manifest
   theme/app/MCP metadata are not yet surfaced or imported automatically.
 - Desktop sync fields are configuration metadata; install the standard MCP
-  plugin from `integrations/goagent` manually.
+  plugin from `integrations/dire-agent` manually.
 - Compaction and ordinary conversation fork/tree navigation are not available.
   Persistent child-agent trees are supported separately.

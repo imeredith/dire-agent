@@ -16,7 +16,7 @@ import (
 
 	"github.com/coder/websocket"
 
-	"goagentcli/daemon"
+	"github.com/imeredith/dire-agent/daemon"
 )
 
 type proxiedRequest struct {
@@ -97,9 +97,10 @@ func TestProjectServerProxyRewritesHTTPAndSupportsNestedRoutes(t *testing.T) {
 	}
 	body := string(contents)
 	for _, want := range []string{
-		`<meta name="goagent-proxy-prefix" content="` + prefix + `">`,
-		`<script src="` + prefix + `/__goagent_project_proxy.js"></script>`,
-		`const marker = "__GOAGENT_PROJECT_PROXY__";`,
+		`<meta name="dire-agent-proxy-prefix" content="` + prefix + `">`,
+		`<script src="` + prefix + `/__dire_agent_project_proxy.js"></script>`,
+		`const marker = "__DIRE_AGENT_PROJECT_PROXY__";`,
+		`const legacyMarker = "__GOAGENT_PROJECT_PROXY__";`,
 		`<meta charSet="utf-8"/>`,
 		`src="` + prefix + `/@vite/client"`,
 		`from "` + prefix + `/@react-refresh"`,
@@ -306,7 +307,7 @@ func TestProjectServerProxyBootstrapSupportsPushRouters(t *testing.T) {
 	proxy := newIPv4TestServer(t, (&daemon.Server{ProjectProxyEnabled: true}).Handler())
 	prefix := fmt.Sprintf("/project/server/%d", port)
 
-	response, err := http.Get(proxy.URL + prefix + "/__goagent_project_proxy.js")
+	response, err := http.Get(proxy.URL + prefix + "/__dire_agent_project_proxy.js")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -319,7 +320,7 @@ func TestProjectServerProxyBootstrapSupportsPushRouters(t *testing.T) {
 		t.Fatalf("bootstrap response = %d %q", response.StatusCode, response.Header.Get("Content-Type"))
 	}
 	script := string(contents)
-	for _, marker := range []string{"__GOAGENT_PROJECT_PROXY__", "pushState", "replaceState", "WebSocket", "EventSource", "XMLHttpRequest", "MutationObserver"} {
+	for _, marker := range []string{"__DIRE_AGENT_PROJECT_PROXY__", "__GOAGENT_PROJECT_PROXY__", "pushState", "replaceState", "WebSocket", "EventSource", "XMLHttpRequest", "MutationObserver"} {
 		if !strings.Contains(script, marker) {
 			t.Errorf("bootstrap is missing %q", marker)
 		}

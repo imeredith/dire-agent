@@ -3,8 +3,8 @@ package client
 import (
 	"context"
 
-	"goagentcli/configuration"
-	"goagentcli/daemon"
+	"github.com/imeredith/dire-agent/configuration"
+	"github.com/imeredith/dire-agent/daemon"
 )
 
 func (c *Client) Config(ctx context.Context) (configuration.Config, error) {

@@ -1,6 +1,6 @@
-# Goagent extension process protocol
+# Dire Agent extension process protocol
 
-Goagent does not load Pi JavaScript/TypeScript or Go plugins into the daemon.
+Dire Agent does not load Pi JavaScript/TypeScript or Go plugins into the daemon.
 An extension that exposes tools runs as an explicitly configured child process.
 The extension must be enabled and have `trusted` trust state before it starts.
 The command and each argument are passed directly to the operating system; no
@@ -9,7 +9,7 @@ The child receives only explicitly configured environment variables unless
 `inherit_env` is enabled for that process.
 
 The process boundary protects daemon memory and lifecycle. When an adapter is
-launched through the daemon capability registry, goagent also applies the
+launched through the daemon capability registry, Dire Agent also applies the
 configured macOS `sandbox-exec` policy: strict mode denies network access and
 confines writes to the project and temporary directories; workspace mode keeps
 the write boundary while allowing network. Sandbox-off is an explicit setting.
@@ -30,7 +30,7 @@ Protocol version: `1.0`.
 First request:
 
 ```json
-{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocol_version":"1.0","client":{"name":"goagent","version":"1"},"extension_id":"example"}}
+{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocol_version":"1.0","client":{"name":"dire-agent","version":"1"},"extension_id":"example"}}
 ```
 
 The result must confirm the version and may register Pi-style contributions:
@@ -80,7 +80,7 @@ string:
 ```
 
 The result can contain display `output`, a `prompt` for the conversation, and
-`is_error`. Goagent exposes names as `/ext:<extension-id>:<command>` and queues
+`is_error`. Dire Agent exposes names as `/ext:<extension-id>:<command>` and queues
 a non-empty returned prompt through the normal conversation run queue.
 
 ### `invoke_hook`
@@ -105,7 +105,7 @@ for settings and diagnostics surfaces.
 ### `shutdown`
 
 The params are `{}`. Return an empty object result, stop accepting work, and
-exit. Goagent closes stdin and terminates the process after the bounded shutdown
+exit. Dire Agent closes stdin and terminates the process after the bounded shutdown
 period even when the adapter does not respond.
 
 ## Cancellation

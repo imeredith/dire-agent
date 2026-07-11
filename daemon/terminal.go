@@ -185,14 +185,16 @@ func terminalEnvironment(base []string, projectID string) []string {
 	// The daemon may itself run in a non-interactive environment with TERM=dumb
 	// or NO_COLOR set. Neither should leak into an explicitly interactive PTY.
 	replaced := map[string]struct{}{
-		"CLICOLOR":       {},
-		"CLICOLOR_FORCE": {},
-		"COLORTERM":      {},
-		"COLORFGBG":      {},
-		"FORCE_COLOR":    {},
-		"NO_COLOR":       {},
-		"TERM":           {},
-		"TERM_PROGRAM":   {},
+		"CLICOLOR":              {},
+		"CLICOLOR_FORCE":        {},
+		"COLORTERM":             {},
+		"COLORFGBG":             {},
+		"FORCE_COLOR":           {},
+		"GOAGENT_PROJECT_ID":    {},
+		"NO_COLOR":              {},
+		"TERM":                  {},
+		"TERM_PROGRAM":          {},
+		"DIRE_AGENT_PROJECT_ID": {},
 	}
 	environment := make([]string, 0, len(base)+6)
 	for _, entry := range base {
@@ -207,9 +209,10 @@ func terminalEnvironment(base []string, projectID string) []string {
 	return append(environment,
 		"TERM=xterm-256color",
 		"COLORTERM=truecolor",
-		"TERM_PROGRAM=goagent",
+		"TERM_PROGRAM=dire-agent",
 		"COLORFGBG=15;0",
 		"CLICOLOR=1",
+		"DIRE_AGENT_PROJECT_ID="+projectID,
 		"GOAGENT_PROJECT_ID="+projectID,
 	)
 }

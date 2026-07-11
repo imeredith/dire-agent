@@ -7,7 +7,7 @@ export const coreFeatures: FeatureDoc[] = [
     group: "Core",
     summary: "Connect the browser to the loopback WebSocket daemon, validate endpoint errors, and reconnect safely.",
     prerequisites: [
-      "Run `go run ./cmd/goagentd` from the repository root.",
+      "Run `go run ./cmd/dire-agentd` from the repository root.",
       "Run `npm run dev` from `web` and open the printed local URL.",
     ],
     steps: [
@@ -42,7 +42,7 @@ export const coreFeatures: FeatureDoc[] = [
       { action: "Send `/folders`.", expected: "The transcript identifies the main project folder separately from the additional sandbox folder." },
       { action: "Ask the agent to read a known file from the included folder by absolute path.", expected: "The read succeeds, while the agent continues to treat the main project folder as its primary working directory." },
       { action: "Send `List the files at the project root using the available tools.`", expected: "A tool activity row appears and the answer only describes files in the selected project." },
-      { action: "Send `Use the read tool on ../outside-goagent-sandbox-test.txt and report the tool error.`", expected: "The read is rejected as outside the project sandbox; no outside file is accessed." },
+      { action: "Send `Use the read tool on ../outside-dire-agent-sandbox-test.txt and report the tool error.`", expected: "The read is rejected as outside the project sandbox; no outside file is accessed." },
     ],
     notes: ["A standalone chat cannot run this test because local built-ins are intentionally absent."],
   },

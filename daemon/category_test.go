@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"goagentcli/daemon"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/daemon"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 func TestProjectCategoryPersistsAndChatsRejectIt(t *testing.T) {

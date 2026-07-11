@@ -3,8 +3,8 @@ package client
 import (
 	"context"
 
-	"goagentcli/daemon"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/daemon"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 func (c *Client) CreateChat(ctx context.Context, options daemon.CreateChatOptions) (threadstore.Chat, error) {

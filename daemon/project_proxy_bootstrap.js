@@ -1,11 +1,15 @@
 (() => {
-  const marker = "__GOAGENT_PROJECT_PROXY__";
-  if (globalThis[marker]) return;
+  const marker = "__DIRE_AGENT_PROJECT_PROXY__";
+  const legacyMarker = "__GOAGENT_PROJECT_PROXY__";
+  if (globalThis[marker]) {
+    globalThis[legacyMarker] = globalThis[marker];
+    return;
+  }
 
   const currentScript = document.currentScript;
   const scriptURL = currentScript?.src ? new URL(currentScript.src, location.href) : null;
-  const suffix = "/__goagent_project_proxy.js";
-  const metaPrefix = document.querySelector('meta[name="goagent-proxy-prefix"]')?.content;
+  const suffix = "/__dire_agent_project_proxy.js";
+  const metaPrefix = document.querySelector('meta[name="dire-agent-proxy-prefix"]')?.content;
   const prefix = (metaPrefix || (scriptURL?.pathname.endsWith(suffix)
     ? scriptURL.pathname.slice(0, -suffix.length)
     : scriptURL?.pathname.replace(/\/$/, "")) || "").replace(/\/$/, "");
@@ -44,12 +48,14 @@
     return pathname.startsWith(prefix + "/") ? pathname.slice(prefix.length) : pathname;
   };
 
-  globalThis[marker] = {
+  const projectProxy = {
     prefix,
     upstreamPort: Number(upstreamPort),
     rewriteURL,
     get pathname() { return stripPrefix(location.pathname); },
   };
+  globalThis[marker] = projectProxy;
+  globalThis[legacyMarker] = projectProxy;
 
   const NativeWebSocket = globalThis.WebSocket;
   if (NativeWebSocket) {

@@ -10,13 +10,13 @@ import (
 	"testing"
 	"time"
 
-	"goagentcli/agent"
-	"goagentcli/agentloop"
-	"goagentcli/agentteam"
-	"goagentcli/capability"
-	"goagentcli/configuration"
-	"goagentcli/daemon"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/agent"
+	"github.com/imeredith/dire-agent/agentloop"
+	"github.com/imeredith/dire-agent/agentteam"
+	"github.com/imeredith/dire-agent/capability"
+	"github.com/imeredith/dire-agent/configuration"
+	"github.com/imeredith/dire-agent/daemon"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 func TestSubagentPersistsMetadataInSeparateSQLiteAndStaysOutOfTopLevelLists(t *testing.T) {

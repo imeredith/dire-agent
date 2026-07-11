@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"goagentcli/agentloop"
+	"github.com/imeredith/dire-agent/agentloop"
 )
 
 func bashTool(root string, executor shellExecutor) agentloop.Tool {

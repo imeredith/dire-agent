@@ -5,7 +5,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"goagentcli/skills"
+	"github.com/imeredith/dire-agent/skills"
 )
 
 func TestDetectInvocations(t *testing.T) {

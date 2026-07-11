@@ -26,6 +26,7 @@ import {
   defaultProjectLaunchers,
   matchesLauncherShortcut,
 } from "./lib/terminal";
+import { readAppStorage, writeAppStorage } from "./lib/storage";
 
 const TerminalPanel = lazy(() => import("./components/TerminalPanel").then((module) => ({ default: module.TerminalPanel })));
 
@@ -46,12 +47,12 @@ const helpText = `**Chat commands**
 - \`/quit\` — disconnect this browser client`;
 
 function App() {
-  const [endpoint, setEndpoint] = useState(() => localStorage.getItem("goagent.endpoint") || defaultWebSocketURL());
+  const [endpoint, setEndpoint] = useState(() => readAppStorage("endpoint") || defaultWebSocketURL());
   const [reconnectKey, setReconnectKey] = useState(0);
   const [selectedID, setSelectedID] = useState(() =>
-    localStorage.getItem("goagent.conversation") ||
-    localStorage.getItem("goagent.project") ||
-    localStorage.getItem("goagent.thread") || "");
+    readAppStorage("conversation") ||
+    readAppStorage("project") ||
+    readAppStorage("thread") || "");
   const [view, setView] = useState<AppView>("conversation");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -114,7 +115,7 @@ function App() {
   }, [conversations, daemon.client, daemon.status, selectedID]);
 
   useEffect(() => {
-    if (selectedID) localStorage.setItem("goagent.conversation", selectedID);
+    if (selectedID) writeAppStorage("conversation", selectedID);
   }, [selectedID]);
 
   useEffect(() => {
@@ -236,8 +237,8 @@ function App() {
       };
       daemon.upsertConversation(canonical);
       selectConversation(canonical);
-      if (values.cwd) localStorage.setItem("goagent.project.folder", values.cwd);
-      if (values.category) localStorage.setItem("goagent.project.category", values.category);
+      if (values.cwd) writeAppStorage("project.folder", values.cwd);
+      if (values.category) writeAppStorage("project.category", values.category);
       setDialog("");
       notify(dialog === "project" ? "Project created" : "Chat created");
     } catch (error) {
@@ -453,7 +454,7 @@ function App() {
                     <div className="desktop-launcher-icon"><AppWindow size={24} /></div>
                     <span className="eyebrow">DAEMON HOST</span>
                     <h2>{launcher.label}</h2>
-                    <p>This desktop application was launched in <code>{selected.cwd}</code> on the machine running goagent.</p>
+                    <p>This desktop application was launched in <code>{selected.cwd}</code> on the machine running Dire Agent.</p>
                     <button className="primary-button" onClick={() => void launchDesktopApp(launcher)}>
                       <ExternalLink size={14} /> Launch again
                     </button>
@@ -483,8 +484,8 @@ function App() {
         <CreateDialog
           kind={dialog}
           busy={busy === "create"}
-          initialFolder={localStorage.getItem("goagent.project.folder") || ""}
-          initialCategory={localStorage.getItem("goagent.project.category") || ""}
+          initialFolder={readAppStorage("project.folder") || ""}
+          initialCategory={readAppStorage("project.category") || ""}
           onClose={() => setDialog("")}
           onCreate={createConversation}
         />
@@ -496,7 +497,7 @@ function App() {
           error={daemon.error}
           onClose={() => setDialog("")}
           onSave={(value) => {
-            localStorage.setItem("goagent.endpoint", value);
+            writeAppStorage("endpoint", value);
             setEndpoint(value);
             setReconnectKey((current) => current + 1);
             setDialog("");

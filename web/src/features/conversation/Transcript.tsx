@@ -213,7 +213,7 @@ function MessageCard({ message, streaming = false }: { message: ChatMessage; str
       <div className="message-avatar assistant-avatar"><Bot size={13} /></div>
       <div className="message-body">
         <div className="message-meta">
-          <strong>{message.role === "system" ? "goagent" : "Agent"}</strong>
+          <strong>{message.role === "system" ? "Dire Agent" : "Agent"}</strong>
           {streaming && <span className="streaming-label">streaming</span>}
         </div>
         <div className="markdown-body">

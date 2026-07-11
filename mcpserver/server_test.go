@@ -8,11 +8,11 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"goagentcli/agent"
-	"goagentcli/agentteam"
-	"goagentcli/daemon"
-	"goagentcli/mcpserver"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/agent"
+	"github.com/imeredith/dire-agent/agentteam"
+	"github.com/imeredith/dire-agent/daemon"
+	"github.com/imeredith/dire-agent/mcpserver"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 func TestBridgeListsCreatesAndRunsChats(t *testing.T) {
@@ -37,20 +37,20 @@ func TestBridgeListsCreatesAndRunsChats(t *testing.T) {
 	defer session.Close()
 
 	created, err := session.CallTool(ctx, &mcp.CallToolParams{
-		Name: "goagent_create_chat", Arguments: map[string]any{"name": "Desktop chat"},
+		Name: "dire_agent_create_chat", Arguments: map[string]any{"name": "Desktop chat"},
 	})
 	if err != nil || created.IsError {
 		t.Fatalf("create: result=%+v err=%v", created, err)
 	}
 	result, err := session.CallTool(ctx, &mcp.CallToolParams{
-		Name:      "goagent_send_message",
+		Name:      "dire_agent_send_message",
 		Arguments: map[string]any{"conversation_id": "chat_1", "message": "hello"},
 	})
 	if err != nil || result.IsError {
 		t.Fatalf("send: result=%+v err=%v", result, err)
 	}
 	spawned, err := session.CallTool(ctx, &mcp.CallToolParams{
-		Name: "goagent_spawn_agent", Arguments: map[string]any{
+		Name: "dire_agent_spawn_agent", Arguments: map[string]any{
 			"parent_id": "chat_1", "name": "researcher", "task": "inspect the topic",
 		},
 	})
@@ -58,7 +58,7 @@ func TestBridgeListsCreatesAndRunsChats(t *testing.T) {
 		t.Fatalf("spawn: result=%+v err=%v", spawned, err)
 	}
 	listed, err := session.CallTool(ctx, &mcp.CallToolParams{
-		Name: "goagent_list_agents", Arguments: map[string]any{"conversation_id": "chat_1"},
+		Name: "dire_agent_list_agents", Arguments: map[string]any{"conversation_id": "chat_1"},
 	})
 	if err != nil || listed.IsError {
 		t.Fatalf("list agents: result=%+v err=%v", listed, err)

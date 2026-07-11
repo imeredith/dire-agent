@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"goagentcli/agent"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/agent"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 const (
@@ -74,7 +74,7 @@ func persistImageAttachments(project threadstore.Thread, images []decodedImageAt
 	if project.ResourceKind() != threadstore.KindProject || project.IsSubagent() || strings.TrimSpace(project.CWD) == "" {
 		return nil, nil, errors.New("daemon: image attachments require a top-level project sandbox")
 	}
-	directory := filepath.Join(project.CWD, ".goagent", "attachments")
+	directory := filepath.Join(project.CWD, ".dire-agent", "attachments")
 	if err := makeSandboxAttachmentDirectory(project.CWD, directory); err != nil {
 		return nil, nil, err
 	}
@@ -109,7 +109,7 @@ func persistImageAttachments(project threadstore.Thread, images []decodedImageAt
 }
 
 func makeSandboxAttachmentDirectory(projectRoot, directory string) error {
-	for _, path := range []string{filepath.Join(projectRoot, ".goagent"), directory} {
+	for _, path := range []string{filepath.Join(projectRoot, ".dire-agent"), directory} {
 		info, err := os.Lstat(path)
 		switch {
 		case err == nil && (info.Mode()&os.ModeSymlink != 0 || !info.IsDir()):

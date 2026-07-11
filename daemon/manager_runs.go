@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"goagentcli/agent"
-	"goagentcli/agentloop"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/agent"
+	"github.com/imeredith/dire-agent/agentloop"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 // Prompt starts a run or queues the message according to streamingBehavior.

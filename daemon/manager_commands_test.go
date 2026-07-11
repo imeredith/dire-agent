@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"goagentcli/capability"
-	"goagentcli/daemon"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/capability"
+	"github.com/imeredith/dire-agent/daemon"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 type commandResolver struct{ calls int }

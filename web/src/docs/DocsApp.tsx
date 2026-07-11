@@ -14,7 +14,7 @@ export function DocsApp() {
       <aside className={`fixed inset-y-0 left-0 z-50 flex w-[286px] flex-col border-r border-white/10 bg-[#0c0f14] transition-transform lg:translate-x-0 ${navOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex h-16 items-center gap-3 border-b border-white/10 px-5">
           <span className="grid size-9 place-items-center rounded-xl border border-[#ff7657]/25 bg-[#ff7657]/10 text-[#ff7657]"><TerminalSquare size={18} /></span>
-          <span className="grid leading-tight"><strong className="font-mono text-sm">goagent docs</strong><small className="text-[10px] text-slate-500">Web UI verification guide</small></span>
+          <span className="grid leading-tight"><strong className="font-mono text-sm">Dire Agent docs</strong><small className="text-[10px] text-slate-500">Web UI verification guide</small></span>
           <button className="ml-auto grid size-8 place-items-center rounded-lg border border-white/10 text-slate-400 lg:hidden" onClick={() => setNavOpen(false)} aria-label="Close docs navigation"><X size={16} /></button>
         </div>
         <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-5" aria-label="Feature documentation">

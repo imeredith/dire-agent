@@ -6,7 +6,7 @@ import (
 	"errors"
 	"testing"
 
-	"goagentcli/agent"
+	"github.com/imeredith/dire-agent/agent"
 )
 
 func TestUsageJSONFieldNames(t *testing.T) {

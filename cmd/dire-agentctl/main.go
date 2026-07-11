@@ -12,20 +12,20 @@ import (
 	"syscall"
 	"time"
 
-	"goagentcli/chatui"
-	"goagentcli/client"
-	"goagentcli/daemon"
+	"github.com/imeredith/dire-agent/chatui"
+	"github.com/imeredith/dire-agent/client"
+	"github.com/imeredith/dire-agent/daemon"
 )
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, "goagentctl:", err)
+		fmt.Fprintln(os.Stderr, "dire-agentctl:", err)
 		os.Exit(1)
 	}
 }
 
 func run(arguments []string) error {
-	flags := flag.NewFlagSet("goagentctl", flag.ContinueOnError)
+	flags := flag.NewFlagSet("dire-agentctl", flag.ContinueOnError)
 	url := flags.String("url", "ws://127.0.0.1:7331/ws", "daemon WebSocket URL")
 	action := flags.String("action", "chat", "chat, prompt, steer, follow-up, abort, list, list-chats, state, create, or create-chat")
 	var projectID string

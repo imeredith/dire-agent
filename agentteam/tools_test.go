@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"goagentcli/agentteam"
+	"github.com/imeredith/dire-agent/agentteam"
 )
 
 func TestToolsSpawnAndMessageWithCallerIdentity(t *testing.T) {

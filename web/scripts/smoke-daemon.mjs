@@ -1,4 +1,4 @@
-const url = process.env.GOAGENT_SMOKE_URL || "ws://127.0.0.1:5173/ws";
+const url = process.env.DIRE_AGENT_SMOKE_URL || "ws://127.0.0.1:5173/ws";
 const socket = new WebSocket(url);
 const pending = new Map();
 

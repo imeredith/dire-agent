@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"goagentcli/capability"
-	"goagentcli/skills"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/capability"
+	"github.com/imeredith/dire-agent/skills"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 func (m *Manager) UpdateSettings(ctx context.Context, id string, update SettingsUpdate) (threadstore.Thread, error) {

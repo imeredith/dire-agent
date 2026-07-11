@@ -1,0 +1,25 @@
+{
+  "name": "dire-agent",
+  "version": "0.1.0",
+  "description": "Manage local Dire Agent chats and folder-scoped projects from Codex desktop.",
+  "author": {
+    "name": "Dire Agent contributors"
+  },
+  "keywords": ["agents", "chat", "projects", "mcp"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Dire Agent",
+    "shortDescription": "Use your local Dire Agent daemon from Codex.",
+    "longDescription": "Create and continue persistent standalone chats or sandboxed folder projects through the local Dire Agent daemon.",
+    "developerName": "Dire Agent contributors",
+    "category": "Productivity",
+    "capabilities": ["Interactive"],
+    "defaultPrompt": [
+      "List my Dire Agent chats and projects.",
+      "Create a standalone Dire Agent chat.",
+      "Continue my most recent Dire Agent conversation."
+    ],
+    "brandColor": "#D97757"
+  }
+}

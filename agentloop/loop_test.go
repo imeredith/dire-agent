@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"goagentcli/agent"
-	"goagentcli/agentloop"
+	"github.com/imeredith/dire-agent/agent"
+	"github.com/imeredith/dire-agent/agentloop"
 )
 
 type fakeSession struct {

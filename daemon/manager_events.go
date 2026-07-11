@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"sync"
 
-	"goagentcli/agent"
-	"goagentcli/agentloop"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/agent"
+	"github.com/imeredith/dire-agent/agentloop"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 func (m *Manager) Subscribe(ctx context.Context, id string) (<-chan Event, func(), error) {

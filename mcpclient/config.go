@@ -95,7 +95,7 @@ func (c ServerConfig) validate() error {
 
 func normalizeOptions(options Options) Options {
 	if options.ClientName == "" {
-		options.ClientName = "goagent"
+		options.ClientName = "dire-agent"
 	}
 	if options.ClientVersion == "" {
 		options.ClientVersion = "dev"

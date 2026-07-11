@@ -8,7 +8,7 @@ import (
 
 	"github.com/coder/websocket/wsjson"
 
-	"goagentcli/daemon"
+	"github.com/imeredith/dire-agent/daemon"
 )
 
 func (c *Client) call(ctx context.Context, command daemon.Command, destination any) error {

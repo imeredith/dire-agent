@@ -15,7 +15,7 @@ export function effectiveProjectLaunchers(value: ProjectLauncher[] | null | unde
 }
 
 export const terminalPrimaryFont = '"Cascadia Code"';
-export const terminalIconFont = '"GoAgent Nerd Symbols"';
+export const terminalIconFont = '"Dire Agent Nerd Symbols"';
 export const terminalIconProbe = "\ue0a0\ue0b0\uf013\uf121\u{f0001}";
 export const terminalFontFamily = `${terminalPrimaryFont}, ${terminalIconFont}, "CaskaydiaCove Nerd Font Mono", "Symbols Nerd Font Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace`;
 

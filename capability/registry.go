@@ -7,10 +7,10 @@ import (
 	"sort"
 	"strings"
 
-	"goagentcli/agentloop"
-	"goagentcli/configuration"
-	"goagentcli/skills"
-	"goagentcli/tools"
+	"github.com/imeredith/dire-agent/agentloop"
+	"github.com/imeredith/dire-agent/configuration"
+	"github.com/imeredith/dire-agent/skills"
+	"github.com/imeredith/dire-agent/tools"
 )
 
 type RegistryConfig struct {

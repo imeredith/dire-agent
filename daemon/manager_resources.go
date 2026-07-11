@@ -11,10 +11,10 @@ import (
 	"sort"
 	"strings"
 
-	"goagentcli/capability"
-	"goagentcli/skills"
-	"goagentcli/threadstore"
-	"goagentcli/tools"
+	"github.com/imeredith/dire-agent/capability"
+	"github.com/imeredith/dire-agent/skills"
+	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/imeredith/dire-agent/tools"
 )
 
 func (m *Manager) CreateThread(ctx context.Context, options CreateThreadOptions) (threadstore.Thread, error) {

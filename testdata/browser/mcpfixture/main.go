@@ -13,7 +13,7 @@ type echoArgs struct {
 }
 
 func main() {
-	server := mcp.NewServer(&mcp.Implementation{Name: "goagent-browser-fixture", Version: "1.0.0"}, nil)
+	server := mcp.NewServer(&mcp.Implementation{Name: "dire-agent-browser-fixture", Version: "1.0.0"}, nil)
 	mcp.AddTool(server, &mcp.Tool{Name: "echo", Description: "Echo a deterministic browser fixture value."},
 		func(_ context.Context, _ *mcp.CallToolRequest, args echoArgs) (*mcp.CallToolResult, any, error) {
 			return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: "MCP_ECHO: " + args.Value}}}, nil, nil

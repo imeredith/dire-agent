@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"goagentcli/capability"
-	"goagentcli/client"
-	"goagentcli/configuration"
-	"goagentcli/daemon"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/capability"
+	"github.com/imeredith/dire-agent/client"
+	"github.com/imeredith/dire-agent/configuration"
+	"github.com/imeredith/dire-agent/daemon"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 func TestConfigurationWebSocketLifecycleAndDefaults(t *testing.T) {

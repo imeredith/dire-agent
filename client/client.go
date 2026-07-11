@@ -1,4 +1,4 @@
-// Package client is a Pi-inspired Go client for the goagent daemon WebSocket API.
+// Package client is a Pi-inspired Go client for the dire-agent daemon WebSocket API.
 package client
 
 import (
@@ -10,7 +10,7 @@ import (
 
 	"github.com/coder/websocket"
 
-	"goagentcli/daemon"
+	"github.com/imeredith/dire-agent/daemon"
 )
 
 type Client struct {

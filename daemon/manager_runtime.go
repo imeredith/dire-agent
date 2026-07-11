@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	"goagentcli/agent"
-	"goagentcli/capability"
-	"goagentcli/skills"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/agent"
+	"github.com/imeredith/dire-agent/capability"
+	"github.com/imeredith/dire-agent/skills"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 func (m *Manager) getRuntime(ctx context.Context, id string) (*threadRuntime, error) {

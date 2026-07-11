@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"goagentcli/agent"
+	"github.com/imeredith/dire-agent/agent"
 )
 
 func TestStepEncodesImageInputForResponsesAPI(t *testing.T) {

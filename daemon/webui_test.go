@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"goagentcli/daemon"
+	"github.com/imeredith/dire-agent/daemon"
 )
 
 func TestWebUIHostingAndSPAFallback(t *testing.T) {
@@ -18,8 +18,8 @@ func TestWebUIHostingAndSPAFallback(t *testing.T) {
 		t.Fatal(err)
 	}
 	files := map[string]string{
-		"index.html":             "<!doctype html><title>goagent production</title><div id=\"root\"></div>",
-		"assets/app-deadbeef.js": "globalThis.goagentProduction = true",
+		"index.html":             "<!doctype html><title>dire-agent production</title><div id=\"root\"></div>",
+		"assets/app-deadbeef.js": "globalThis.direAgentProduction = true",
 		"favicon.svg":            "<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>",
 	}
 	for name, contents := range files {
@@ -39,9 +39,9 @@ func TestWebUIHostingAndSPAFallback(t *testing.T) {
 		cache       string
 		contentType string
 	}{
-		{name: "root index", method: http.MethodGet, path: "/", status: http.StatusOK, body: "goagent production", cache: "no-cache", contentType: "text/html"},
-		{name: "spa route", method: http.MethodGet, path: "/docs/folder-projects", accept: "text/html", status: http.StatusOK, body: "goagent production", cache: "no-cache", contentType: "text/html"},
-		{name: "hashed asset", method: http.MethodGet, path: "/assets/app-deadbeef.js", status: http.StatusOK, body: "goagentProduction", cache: "public, max-age=31536000, immutable", contentType: "text/javascript"},
+		{name: "root index", method: http.MethodGet, path: "/", status: http.StatusOK, body: "dire-agent production", cache: "no-cache", contentType: "text/html"},
+		{name: "spa route", method: http.MethodGet, path: "/docs/folder-projects", accept: "text/html", status: http.StatusOK, body: "dire-agent production", cache: "no-cache", contentType: "text/html"},
+		{name: "hashed asset", method: http.MethodGet, path: "/assets/app-deadbeef.js", status: http.StatusOK, body: "direAgentProduction", cache: "public, max-age=31536000, immutable", contentType: "text/javascript"},
 		{name: "ordinary asset", method: http.MethodGet, path: "/favicon.svg", status: http.StatusOK, body: "<svg", cache: "public, max-age=3600", contentType: "image/svg+xml"},
 		{name: "missing hashed asset", method: http.MethodGet, path: "/assets/missing.js", status: http.StatusNotFound},
 		{name: "asset directory", method: http.MethodGet, path: "/assets", status: http.StatusNotFound},

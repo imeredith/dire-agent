@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"goagentcli/configuration"
+	"github.com/imeredith/dire-agent/configuration"
 )
 
 func TestExtensionSourceDiscoversToolsSkillsAndReusesPerScope(t *testing.T) {

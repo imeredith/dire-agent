@@ -16,7 +16,7 @@ const (
 	defaultOAuthClient     = "app_EMoamEEZ73f0CkXaXp7hrann"
 	defaultModel           = "gpt-5.6"
 	defaultProtocolVersion = "0.144.0-alpha.4"
-	defaultUserAgent       = "codex_cli_rs/0.144.0-alpha.4 (goagentcli/0.1.0)"
+	defaultUserAgent       = "codex_cli_rs/0.144.0-alpha.4 (dire-agent/0.1.0)"
 	defaultOriginator      = "codex_cli_rs"
 	providerName           = "codex-subscription-direct"
 	maximumErrorBody       = 1 << 20

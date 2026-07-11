@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"goagentcli/agentloop"
-	"goagentcli/skills"
+	"github.com/imeredith/dire-agent/agentloop"
+	"github.com/imeredith/dire-agent/skills"
 )
 
 func TestToolListsMetadataAndLoadsFullInstructions(t *testing.T) {

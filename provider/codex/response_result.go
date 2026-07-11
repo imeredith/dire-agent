@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"goagentcli/agent"
+	"github.com/imeredith/dire-agent/agent"
 )
 
 func (r *streamResult) toolCalls() []agent.ToolCall {
@@ -107,5 +107,5 @@ func randomID() (string, error) {
 	if _, err := rand.Read(value[:]); err != nil {
 		return "", err
 	}
-	return "goagent_" + hex.EncodeToString(value[:]), nil
+	return "dire_agent_" + hex.EncodeToString(value[:]), nil
 }

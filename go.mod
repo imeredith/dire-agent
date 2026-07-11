@@ -1,4 +1,4 @@
-module goagentcli
+module github.com/imeredith/dire-agent
 
 go 1.25.0
 

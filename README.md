@@ -1,6 +1,6 @@
-# goagentcli
+# Dire Agent
 
-`goagentcli` is a Go library and local daemon for persistent AI-agent
+Dire Agent is a Go library and local daemon for persistent AI-agent
 conversations. It supports two conversation scopes:
 
 - **Projects** are bound to a canonical folder and may use explicitly enabled
@@ -67,7 +67,7 @@ actions are not constrained by a local filesystem sandbox.
 
 Pasted images are accepted only by top-level projects. The daemon validates
 their MIME type and size, generates the filename, rejects symlink escapes, and
-stores them under `<project>/.goagent/attachments`. A prompt may contain up to
+stores them under `<project>/.dire-agent/attachments`. A prompt may contain up to
 four images, 5 MiB each and 10 MiB total. Pathless chats reject images.
 
 Workspace launchers are explicit user-operated applications, not model tools.
@@ -93,28 +93,34 @@ Do not expose it directly to an untrusted network.
 
 ```sh
 codex login
-go run ./cmd/goagentd
+go run ./cmd/dire-agentd
 ```
 
 Defaults:
 
 - WebSocket/HTTP: `127.0.0.1:7331`
-- conversation databases: `~/.goagent/projects`
-- configuration: `~/.goagent/config.json`
+- conversation databases: `~/.dire-agent/projects`
+- configuration: `~/.dire-agent/config.json`
 - model: `gpt-5.6`
 - credentials: `$CODEX_HOME/auth.json` or `~/.codex/auth.json`
 
-If the projects directory is absent but `~/.goagent/threads` exists, the daemon
+If the projects directory is absent but `~/.dire-agent/threads` exists, the daemon
 uses the legacy directory so existing histories remain visible. The convenient
 `gpt-5.6` selector maps to `gpt-5.6-sol` on the ChatGPT-backed wire endpoint;
 explicit `sol`, `terra`, and `luna` variants pass through unchanged.
 
+After an upgrade from GoAgent, existing `~/.goagent/projects`,
+`~/.goagent/threads`, and `~/.goagent/config.json` remain readable when the
+corresponding Dire Agent paths do not yet exist. New installations and new
+project attachments use the `.dire-agent` namespace; previously stored
+`.goagent/attachments` remain readable.
+
 Override the main paths and project defaults with flags:
 
 ```sh
-go run ./cmd/goagentd \
+go run ./cmd/dire-agentd \
   -data-dir ./agent-data \
-  -config ./goagent.json \
+  -config ./dire-agent.json \
   -cwd /path/to/project \
   -tools read,grep,find,ls,write,edit,bash
 ```
@@ -131,16 +137,16 @@ an update preserves the stored value.
 Create or open a folder project:
 
 ```sh
-go run ./cmd/goagentctl
-go run ./cmd/goagentctl -project PROJECT_ID
-go run ./cmd/goagentctl -folder /path/to/project
+go run ./cmd/dire-agentctl
+go run ./cmd/dire-agentctl -project PROJECT_ID
+go run ./cmd/dire-agentctl -folder /path/to/project
 ```
 
 Create or open a pathless standalone chat:
 
 ```sh
-go run ./cmd/goagentctl -standalone
-go run ./cmd/goagentctl -chat CHAT_ID
+go run ./cmd/dire-agentctl -standalone
+go run ./cmd/dire-agentctl -chat CHAT_ID
 ```
 
 `-message` supplies an initial prompt. Enter sends, `Ctrl+J` or `Shift+Enter`
@@ -177,7 +183,7 @@ Trusted skills can be requested with `/skill:NAME arguments` or `$NAME`. These
 remain normal prompts in the UI; the daemon expands the selected `SKILL.md`
 instructions for that run.
 
-Non-interactive `goagentctl -action` values include `prompt`, `steer`,
+Non-interactive `dire-agentctl -action` values include `prompt`, `steer`,
 `follow-up`, `abort`, `list`, `list-chats`, `state`, `create`, and
 `create-chat`.
 
@@ -226,7 +232,7 @@ Build a single daemon binary containing the optimized Vite application:
 ```sh
 npm --prefix web install
 make production
-./dist/goagentd
+./dist/dire-agentd
 ```
 
 Open `http://127.0.0.1:7331`. The embedded UI, `/ws`, `/terminal`,
@@ -239,7 +245,7 @@ A normal development binary can instead host an existing build directory:
 
 ```sh
 npm --prefix web run build
-go run ./cmd/goagentd -web-dir ./web/dist
+go run ./cmd/dire-agentd -web-dir ./web/dist
 ```
 
 The production-tagged binary serves its embedded UI automatically. Pass
@@ -271,9 +277,12 @@ as `/some/route`. Applications whose router requires an explicit basename can
 read the injected prefix:
 
 ```tsx
-const proxy = window.__GOAGENT_PROJECT_PROXY__;
+const proxy = window.__DIRE_AGENT_PROJECT_PROXY__;
 <BrowserRouter basename={proxy?.prefix}>{/* routes */}</BrowserRouter>;
 ```
+
+During the rename transition, `window.__GOAGENT_PROJECT_PROXY__` points to the
+same object so existing proxied applications keep their basename contract.
 
 The same object exposes `pathname` with the mount removed and a `rewriteURL`
 helper. Next.js App Router projects must set Next's build-time `basePath` to the
@@ -303,7 +312,7 @@ bounded `mcpctx__SERVER__list_resources`, `read_resource`, `list_prompts`, and
 `get_prompt` tools. Discovery follows pagination and tool-list change
 notifications. Server/tool allowlists, timeouts, bounded results, secret
 redaction, same-origin HTTP redirects, and connection diagnostics are enforced.
-The outward `goagent-mcp` bridge is rejected as an inward server to prevent
+The outward `dire-agent-mcp` bridge is rejected as an inward server to prevent
 recursion.
 
 Extensions use an NDJSON JSON-RPC subprocess protocol rather than loading
@@ -316,20 +325,20 @@ automatically downloaded or executed.
 
 ## Codex/ChatGPT desktop bridge
 
-`goagent-mcp` exposes the daemon through standard MCP over stdio; it does not
+`dire-agent-mcp` exposes the daemon through standard MCP over stdio; it does not
 use app-server:
 
 ```sh
-go build -o /usr/local/bin/goagent-mcp ./cmd/goagent-mcp
-go run ./cmd/goagentd
+go build -o /usr/local/bin/dire-agent-mcp ./cmd/dire-agent-mcp
+go run ./cmd/dire-agentd
 ```
 
-The local Codex plugin is in [integrations/goagent](integrations/goagent). It
+The local Codex plugin is in [integrations/dire-agent](integrations/dire-agent). It
 provides MCP tools to list/create chats and projects, inspect state/history,
 send a message (optionally waiting for settlement), abort a run, and coordinate
 persistent child-agent teams. Install
-that directory as a local plugin after ensuring `goagent-mcp` is on the desktop
-app's PATH. It manages separate GoAgent conversations; it does not transfer the
+that directory as a local plugin after ensuring `dire-agent-mcp` is on the desktop
+app's PATH. It manages separate Dire Agent conversations; it does not transfer the
 current Codex task.
 
 Desktop sync paths and modes are configurable, but automatic plugin install,
@@ -348,7 +357,7 @@ performed by the daemon.
 - `agentteam`: persistent child-agent model tools and shared types.
 - `daemon`, `client`, `chatui`: manager, WebSocket API, Go client, and Bubble
   Tea UI.
-- `mcpserver`, `cmd/goagent-mcp`, `integrations/goagent`: desktop MCP bridge.
+- `mcpserver`, `cmd/dire-agent-mcp`, `integrations/dire-agent`: desktop MCP bridge.
 - `web`: React/Tailwind/Vite browser client.
 
 ## Current limitations

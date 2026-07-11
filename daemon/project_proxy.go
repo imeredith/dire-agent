@@ -20,7 +20,7 @@ import (
 
 const (
 	projectServerPath      = "/project/server/"
-	projectProxyBootstrap  = "__goagent_project_proxy.js"
+	projectProxyBootstrap  = "__dire_agent_project_proxy.js"
 	maxProjectRewriteBytes = 64 << 20
 )
 
@@ -72,7 +72,7 @@ func (s *Server) handleProjectServer(writer http.ResponseWriter, request *http.R
 		return
 	}
 	if s.ProjectProxyBlockedPort != 0 && route.Port == s.ProjectProxyBlockedPort {
-		http.Error(writer, "refusing to proxy to the goagent daemon port", http.StatusForbidden)
+		http.Error(writer, "refusing to proxy to the Dire Agent daemon port", http.StatusForbidden)
 		return
 	}
 	if route.UpstreamPath == "/"+projectProxyBootstrap {
@@ -143,7 +143,7 @@ func (s *Server) detectProjectProxyMode(ctx context.Context, target *url.URL, pr
 	probeURL.Path = prefix
 	probe, err := http.NewRequestWithContext(probeContext, http.MethodHead, probeURL.String(), nil)
 	if err == nil {
-		probe.Header.Set("User-Agent", "goagent-project-proxy-probe")
+		probe.Header.Set("User-Agent", "dire-agent-project-proxy-probe")
 		response, roundTripErr := projectProxyTransport.RoundTrip(probe)
 		if roundTripErr == nil {
 			_ = response.Body.Close()
@@ -392,7 +392,7 @@ func rewriteProxyText(contents []byte, prefix, mediaType, upstreamPath string, r
 	if mediaType != "text/html" {
 		return []byte(text)
 	}
-	bootstrap := `<meta name="goagent-proxy-prefix" content="` + prefix + `">`
+	bootstrap := `<meta name="dire-agent-proxy-prefix" content="` + prefix + `">`
 	bootstrap += `<script src="` + prefix + `/` + projectProxyBootstrap + `"></script>`
 	inlineBootstrap := strings.ReplaceAll(string(projectProxyBootstrapJS), "</script", `<\/script`)
 	bootstrap += `<script>` + inlineBootstrap + `</script>`

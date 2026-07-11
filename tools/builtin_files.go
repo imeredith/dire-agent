@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"goagentcli/agentloop"
+	"github.com/imeredith/dire-agent/agentloop"
 )
 
 func readTool(paths pathSandbox) agentloop.Tool {

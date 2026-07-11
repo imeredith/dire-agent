@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"goagentcli/agent"
+	"github.com/imeredith/dire-agent/agent"
 )
 
 type session struct {

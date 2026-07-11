@@ -20,7 +20,7 @@ func TestStdioProtocolAndConcurrentCalls(t *testing.T) {
 			Command: os.Args[0],
 			Args:    []string{"-test.run=^TestExtensionHelperProcess$", "--", literal},
 			Dir:     t.TempDir(),
-			Env:     map[string]string{"GOAGENT_EXTENSION_HELPER": "1"},
+			Env:     map[string]string{"DIRE_AGENT_EXTENSION_HELPER": "1"},
 		},
 	}, OpenOptions{Limits: Limits{
 		InitializeTimeout: 2 * time.Second, CallTimeout: 2 * time.Second,
@@ -66,7 +66,7 @@ func TestStdioProtocolAndConcurrentCalls(t *testing.T) {
 }
 
 func TestExtensionHelperProcess(t *testing.T) {
-	if os.Getenv("GOAGENT_EXTENSION_HELPER") != "1" {
+	if os.Getenv("DIRE_AGENT_EXTENSION_HELPER") != "1" {
 		return
 	}
 	_, _ = fmt.Fprintln(os.Stderr, strings.Repeat("extension-log-", 32))
@@ -134,14 +134,14 @@ func TestModelNameIsStableAndBounded(t *testing.T) {
 }
 
 func TestChildEnvironmentIsExplicitByDefault(t *testing.T) {
-	t.Setenv("GOAGENT_PARENT_ONLY", "secret")
+	t.Setenv("DIRE_AGENT_PARENT_ONLY", "secret")
 	withoutInheritance := mergedEnvironment(map[string]string{"EXPLICIT": "yes"}, false)
-	if containsEnvironment(withoutInheritance, "GOAGENT_PARENT_ONLY=secret") ||
+	if containsEnvironment(withoutInheritance, "DIRE_AGENT_PARENT_ONLY=secret") ||
 		!containsEnvironment(withoutInheritance, "EXPLICIT=yes") {
 		t.Fatalf("isolated environment = %#v", withoutInheritance)
 	}
 	withInheritance := mergedEnvironment(nil, true)
-	if !containsEnvironment(withInheritance, "GOAGENT_PARENT_ONLY=secret") {
+	if !containsEnvironment(withInheritance, "DIRE_AGENT_PARENT_ONLY=secret") {
 		t.Fatalf("inherited environment omitted parent value")
 	}
 }

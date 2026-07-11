@@ -105,7 +105,7 @@ func writeAuthDocument(path string, document *authDocument, now time.Time) error
 	contents = append(contents, '\n')
 
 	directory := filepath.Dir(path)
-	temporary, err := os.CreateTemp(directory, ".auth.json.goagent-*")
+	temporary, err := os.CreateTemp(directory, ".auth.json.dire-agent-*")
 	if err != nil {
 		return fmt.Errorf("codex: create temporary credential file: %w", err)
 	}

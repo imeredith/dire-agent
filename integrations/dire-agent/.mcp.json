@@ -1,7 +1,7 @@
 {
   "mcpServers": {
-    "goagent": {
-      "command": "goagent-mcp",
+    "dire-agent": {
+      "command": "dire-agent-mcp",
       "args": [
         "--daemon",
         "ws://127.0.0.1:7331/ws"

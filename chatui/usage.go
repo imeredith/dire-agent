@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"goagentcli/agent"
+	"github.com/imeredith/dire-agent/agent"
 )
 
 func usagePresent(usage agent.Usage) bool {

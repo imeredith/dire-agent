@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"goagentcli/client"
-	"goagentcli/daemon"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/client"
+	"github.com/imeredith/dire-agent/daemon"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 func TestStandaloneChatLifecycleAndIsolation(t *testing.T) {

@@ -12,19 +12,19 @@ import (
 	"syscall"
 	"time"
 
-	"goagentcli/agent"
-	"goagentcli/provider/codex"
+	"github.com/imeredith/dire-agent/agent"
+	"github.com/imeredith/dire-agent/provider/codex"
 )
 
 func main() {
 	if err := run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr); err != nil {
-		fmt.Fprintln(os.Stderr, "goagent:", err)
+		fmt.Fprintln(os.Stderr, "dire-agent:", err)
 		os.Exit(1)
 	}
 }
 
 func run(arguments []string, stdin io.Reader, stdout, stderr io.Writer) error {
-	flags := flag.NewFlagSet("goagent", flag.ContinueOnError)
+	flags := flag.NewFlagSet("dire-agent", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	model := flags.String("model", "gpt-5.6", "Codex model")
 	instructions := flags.String("instructions", "", "developer instructions for the agent")

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"goagentcli/agent"
-	"goagentcli/daemon"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/agent"
+	"github.com/imeredith/dire-agent/daemon"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 func (m *model) handleEvent(event daemon.WireEvent) {

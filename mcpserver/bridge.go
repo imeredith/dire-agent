@@ -1,13 +1,13 @@
-// Package mcpserver exposes a goagent daemon as a standard MCP server.
+// Package mcpserver exposes a Dire Agent daemon as a standard MCP server.
 package mcpserver
 
 import (
 	"context"
 	"time"
 
-	"goagentcli/agentteam"
-	"goagentcli/daemon"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/agentteam"
+	"github.com/imeredith/dire-agent/daemon"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 // Daemon is intentionally narrower than client.Client so the MCP bridge is

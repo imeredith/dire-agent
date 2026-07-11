@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"goagentcli/agent"
-	"goagentcli/extensions"
+	"github.com/imeredith/dire-agent/agent"
+	"github.com/imeredith/dire-agent/extensions"
 )
 
 func addExtensionContributions(client *extensions.Client, id string, fragment *Fragment) {

@@ -3,7 +3,7 @@ package daemon
 import (
 	"encoding/json"
 
-	"goagentcli/configuration"
+	"github.com/imeredith/dire-agent/configuration"
 )
 
 // Command is the Pi-inspired WebSocket command envelope.

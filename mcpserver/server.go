@@ -22,7 +22,7 @@ func New(backend Daemon) (*Server, error) {
 	}
 	bridge := &Server{daemon: backend}
 	server := mcp.NewServer(&mcp.Implementation{
-		Name: "goagent", Title: "GoAgent daemon", Version: "0.1.0",
+		Name: "dire-agent", Title: "Dire Agent daemon", Version: "0.1.0",
 	}, nil)
 	bridge.server = server
 	bridge.addConversationTools()

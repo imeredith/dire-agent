@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"goagentcli/agent"
-	"goagentcli/provider/codex"
+	"github.com/imeredith/dire-agent/agent"
+	"github.com/imeredith/dire-agent/provider/codex"
 )
 
 // TestLiveLunaReasoningAndImage exercises the streaming reasoning-summary and
@@ -119,12 +119,12 @@ func TestLiveSubscriptionCredentials(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open live session: %v", err)
 	}
-	result, err := session.Run(ctx, "Reply with exactly GOAGENTCLI_LIVE_OK and nothing else.")
+	result, err := session.Run(ctx, "Reply with exactly DIRE_AGENT_LIVE_OK and nothing else.")
 	if err != nil {
 		t.Fatalf("run live turn: %v", err)
 	}
-	if strings.TrimSpace(result.Text) != "GOAGENTCLI_LIVE_OK" {
-		t.Fatalf("live response = %q, want GOAGENTCLI_LIVE_OK", result.Text)
+	if strings.TrimSpace(result.Text) != "DIRE_AGENT_LIVE_OK" {
+		t.Fatalf("live response = %q, want DIRE_AGENT_LIVE_OK", result.Text)
 	}
 	if result.Usage.ContextWindow != 372_000 {
 		t.Fatalf("Luna context window = %d, want 372000", result.Usage.ContextWindow)
@@ -158,12 +158,12 @@ func TestLiveLunaPromptCaching(t *testing.T) {
 		t.Fatalf("open Luna cache session: %v", err)
 	}
 
-	stablePrefix := strings.Repeat("goagent stable cache validation prefix; ", 700)
-	first, err := session.Run(ctx, "Reference block (ignore its content):\n"+stablePrefix+"\nReply with exactly GOAGENTCLI_CACHE_WRITE_OK and nothing else.")
+	stablePrefix := strings.Repeat("dire-agent stable cache validation prefix; ", 700)
+	first, err := session.Run(ctx, "Reference block (ignore its content):\n"+stablePrefix+"\nReply with exactly DIRE_AGENT_CACHE_WRITE_OK and nothing else.")
 	if err != nil {
 		t.Fatalf("run Luna cache-write turn: %v", err)
 	}
-	if strings.TrimSpace(first.Text) != "GOAGENTCLI_CACHE_WRITE_OK" {
+	if strings.TrimSpace(first.Text) != "DIRE_AGENT_CACHE_WRITE_OK" {
 		t.Fatalf("cache-write response = %q", first.Text)
 	}
 	if first.Usage.CacheWriteTokens == 0 {
@@ -174,11 +174,11 @@ func TestLiveLunaPromptCaching(t *testing.T) {
 
 	var cached agent.Result
 	for attempt := 1; attempt <= 3; attempt++ {
-		cached, err = session.Run(ctx, "Reply with exactly GOAGENTCLI_CACHE_READ_OK and nothing else.")
+		cached, err = session.Run(ctx, "Reply with exactly DIRE_AGENT_CACHE_READ_OK and nothing else.")
 		if err != nil {
 			t.Fatalf("run Luna cache-read turn %d: %v", attempt, err)
 		}
-		if strings.TrimSpace(cached.Text) != "GOAGENTCLI_CACHE_READ_OK" {
+		if strings.TrimSpace(cached.Text) != "DIRE_AGENT_CACHE_READ_OK" {
 			t.Fatalf("cache-read response %d = %q", attempt, cached.Text)
 		}
 		t.Logf("cache read attempt %d: input=%d output=%d cache_read=%d cache_write=%d context=%d/%d",

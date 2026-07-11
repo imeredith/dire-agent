@@ -49,7 +49,7 @@ describe("project categories and launchers", () => {
     expect(screen.queryByRole("button", { name: /Internal project.*workspace/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Beta client project" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Alpha client project" })).toBeInTheDocument();
-    expect(localStorage.getItem("goagent.project.categoryFilter")).toBe("category:Client A");
+    expect(localStorage.getItem("dire-agent.project.categoryFilter")).toBe("category:Client A");
 
     first.unmount();
     render(<App />);

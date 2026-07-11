@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"goagentcli/configuration"
+	"github.com/imeredith/dire-agent/configuration"
 )
 
 func TestTerminalEnvironmentEnablesTrueColorAndRemovesColorOptOuts(t *testing.T) {
@@ -17,6 +17,8 @@ func TestTerminalEnvironmentEnablesTrueColorAndRemovesColorOptOuts(t *testing.T)
 		"NO_COLOR=1",
 		"FORCE_COLOR=0",
 		"CLICOLOR=0",
+		"DIRE_AGENT_PROJECT_ID=old",
+		"GOAGENT_PROJECT_ID=legacy",
 		"UNRELATED=kept",
 	}, "project_test")
 
@@ -28,13 +30,14 @@ func TestTerminalEnvironmentEnablesTrueColorAndRemovesColorOptOuts(t *testing.T)
 		}
 	}
 	for name, want := range map[string]string{
-		"TERM":               "xterm-256color",
-		"COLORTERM":          "truecolor",
-		"TERM_PROGRAM":       "goagent",
-		"COLORFGBG":          "15;0",
-		"CLICOLOR":           "1",
-		"GOAGENT_PROJECT_ID": "project_test",
-		"UNRELATED":          "kept",
+		"TERM":                  "xterm-256color",
+		"COLORTERM":             "truecolor",
+		"TERM_PROGRAM":          "dire-agent",
+		"COLORFGBG":             "15;0",
+		"CLICOLOR":              "1",
+		"DIRE_AGENT_PROJECT_ID": "project_test",
+		"GOAGENT_PROJECT_ID":    "project_test",
+		"UNRELATED":             "kept",
 	} {
 		if got := values[name]; got != want {
 			t.Fatalf("%s = %q, want %q; environment=%q", name, got, want, environment)
@@ -71,7 +74,7 @@ func TestProjectLauncherCommandLinePreservesConfiguredArguments(t *testing.T) {
 
 func TestProjectApplicationEnvironmentReplacesProjectID(t *testing.T) {
 	environment := projectApplicationEnvironment([]string{
-		"PATH=/usr/bin", "GOAGENT_PROJECT_ID=old", "OTHER=kept",
+		"PATH=/usr/bin", "DIRE_AGENT_PROJECT_ID=old", "GOAGENT_PROJECT_ID=legacy", "OTHER=kept",
 	}, "project_new")
 	values := make(map[string]string, len(environment))
 	for _, entry := range environment {
@@ -80,7 +83,7 @@ func TestProjectApplicationEnvironmentReplacesProjectID(t *testing.T) {
 			values[name] = value
 		}
 	}
-	if values["GOAGENT_PROJECT_ID"] != "project_new" || values["OTHER"] != "kept" {
+	if values["DIRE_AGENT_PROJECT_ID"] != "project_new" || values["GOAGENT_PROJECT_ID"] != "project_new" || values["OTHER"] != "kept" {
 		t.Fatalf("environment = %#v", environment)
 	}
 }

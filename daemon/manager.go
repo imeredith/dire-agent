@@ -8,13 +8,13 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"goagentcli/agent"
-	"goagentcli/agentloop"
-	"goagentcli/agentteam"
-	"goagentcli/capability"
-	"goagentcli/configuration"
-	"goagentcli/skills"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/agent"
+	"github.com/imeredith/dire-agent/agentloop"
+	"github.com/imeredith/dire-agent/agentteam"
+	"github.com/imeredith/dire-agent/capability"
+	"github.com/imeredith/dire-agent/configuration"
+	"github.com/imeredith/dire-agent/skills"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 type ManagerConfig struct {

@@ -8,20 +8,20 @@ import (
 	"os/signal"
 	"syscall"
 
-	"goagentcli/client"
-	"goagentcli/mcpserver"
+	"github.com/imeredith/dire-agent/client"
+	"github.com/imeredith/dire-agent/mcpserver"
 )
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, "goagent-mcp:", err)
+		fmt.Fprintln(os.Stderr, "dire-agent-mcp:", err)
 		os.Exit(1)
 	}
 }
 
 func run(arguments []string) error {
-	flags := flag.NewFlagSet("goagent-mcp", flag.ContinueOnError)
-	daemonURL := flags.String("daemon", "ws://127.0.0.1:7331/ws", "goagent daemon WebSocket URL")
+	flags := flag.NewFlagSet("dire-agent-mcp", flag.ContinueOnError)
+	daemonURL := flags.String("daemon", "ws://127.0.0.1:7331/ws", "Dire Agent daemon WebSocket URL")
 	if err := flags.Parse(arguments); err != nil {
 		return err
 	}

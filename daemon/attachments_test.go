@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"goagentcli/agent"
-	"goagentcli/daemon"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/agent"
+	"github.com/imeredith/dire-agent/daemon"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 func TestPastedImageIsSandboxedPersistedAndSentToModel(t *testing.T) {
@@ -83,7 +83,7 @@ func TestPastedImageIsSandboxedPersistedAndSentToModel(t *testing.T) {
 	if stored.File == "" || stored.Data != "" || strings.Contains(stored.File, "clipboard") {
 		t.Fatalf("stored attachment = %#v", stored)
 	}
-	path := filepath.Join(root, ".goagent", "attachments", stored.File)
+	path := filepath.Join(root, ".dire-agent", "attachments", stored.File)
 	if contents, err := os.ReadFile(path); err != nil || string(contents) != string(imageBytes) {
 		t.Fatalf("sandbox attachment = %q, %v", contents, err)
 	}
@@ -93,6 +93,39 @@ func TestPastedImageIsSandboxedPersistedAndSentToModel(t *testing.T) {
 	(&daemon.Server{Manager: manager}).Handler().ServeHTTP(recorder, request)
 	if recorder.Code != 200 || recorder.Body.String() != string(imageBytes) || recorder.Header().Get("Content-Type") != "image/png" {
 		t.Fatalf("attachment response = %d %q %q", recorder.Code, recorder.Header().Get("Content-Type"), recorder.Body.String())
+	}
+
+	legacyDirectory := filepath.Join(root, ".goagent", "attachments")
+	if err := os.MkdirAll(legacyDirectory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(path, filepath.Join(legacyDirectory, stored.File)); err != nil {
+		t.Fatal(err)
+	}
+	legacyRecorder := httptest.NewRecorder()
+	(&daemon.Server{Manager: manager}).Handler().ServeHTTP(legacyRecorder, request)
+	if legacyRecorder.Code != 200 || legacyRecorder.Body.String() != string(imageBytes) {
+		t.Fatalf("legacy attachment response = %d %q", legacyRecorder.Code, legacyRecorder.Body.String())
+	}
+
+	outside := t.TempDir()
+	outsideAttachments := filepath.Join(outside, "attachments")
+	if err := os.MkdirAll(outsideAttachments, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(outsideAttachments, stored.File), imageBytes, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.RemoveAll(filepath.Join(root, ".goagent")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(root, ".goagent")); err != nil {
+		t.Fatal(err)
+	}
+	escapeRecorder := httptest.NewRecorder()
+	(&daemon.Server{Manager: manager}).Handler().ServeHTTP(escapeRecorder, request)
+	if escapeRecorder.Code != 404 {
+		t.Fatalf("legacy attachment symlink escape response = %d %q", escapeRecorder.Code, escapeRecorder.Body.String())
 	}
 }
 
@@ -122,11 +155,11 @@ func TestPastedImageRejectsChatAndSymlinkEscape(t *testing.T) {
 		t.Fatal(err)
 	}
 	escape := t.TempDir()
-	if err := os.Symlink(escape, filepath.Join(root, ".goagent")); err != nil {
+	if err := os.Symlink(escape, filepath.Join(root, ".dire-agent")); err != nil {
 		t.Fatal(err)
 	}
 	if err := manager.PromptWithAttachments(ctx, project.ID, "look", "", attachment); err == nil {
-		t.Fatal("image upload followed a sandbox-escaping .goagent symlink")
+		t.Fatal("image upload followed a sandbox-escaping .dire-agent symlink")
 	}
 	if _, err := os.Stat(filepath.Join(escape, "attachments")); !os.IsNotExist(err) {
 		t.Fatalf("upload wrote outside sandbox: %v", err)

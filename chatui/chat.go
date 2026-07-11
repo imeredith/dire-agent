@@ -10,10 +10,10 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"goagentcli/agentteam"
-	"goagentcli/capability"
-	"goagentcli/daemon"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/agentteam"
+	"github.com/imeredith/dire-agent/capability"
+	"github.com/imeredith/dire-agent/daemon"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 // API is the daemon client surface used by the chat UI.

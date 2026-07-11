@@ -7,20 +7,34 @@ import (
 	"testing"
 )
 
-func TestDefaultDataDirectoryPrefersProjectsAndFallsBackToLegacy(t *testing.T) {
+func TestDefaultDataDirectoryPrefersCurrentAndFallsBackToLegacy(t *testing.T) {
 	t.Parallel()
 	home := t.TempDir()
-	projects := filepath.Join(home, ".goagent", "projects")
-	legacy := filepath.Join(home, ".goagent", "threads")
+	projects := filepath.Join(home, ".dire-agent", "projects")
+	threads := filepath.Join(home, ".dire-agent", "threads")
+	legacyProjects := filepath.Join(home, ".goagent", "projects")
+	legacyThreads := filepath.Join(home, ".goagent", "threads")
 
 	if got := defaultDataDirectory(home); got != projects {
 		t.Fatalf("empty home data directory = %q, want %q", got, projects)
 	}
-	if err := os.MkdirAll(legacy, 0o700); err != nil {
+	if err := os.MkdirAll(legacyThreads, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if got := defaultDataDirectory(home); got != legacy {
-		t.Fatalf("legacy fallback = %q, want %q", got, legacy)
+	if got := defaultDataDirectory(home); got != legacyThreads {
+		t.Fatalf("legacy threads fallback = %q, want %q", got, legacyThreads)
+	}
+	if err := os.MkdirAll(legacyProjects, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if got := defaultDataDirectory(home); got != legacyProjects {
+		t.Fatalf("legacy projects fallback = %q, want %q", got, legacyProjects)
+	}
+	if err := os.MkdirAll(threads, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if got := defaultDataDirectory(home); got != threads {
+		t.Fatalf("current threads fallback = %q, want %q", got, threads)
 	}
 	if err := os.MkdirAll(projects, 0o700); err != nil {
 		t.Fatal(err)

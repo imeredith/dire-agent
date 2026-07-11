@@ -4,9 +4,9 @@ import (
 	"errors"
 	"time"
 
-	"goagentcli/agentteam"
-	"goagentcli/configuration"
-	"goagentcli/threadstore"
+	"github.com/imeredith/dire-agent/agentteam"
+	"github.com/imeredith/dire-agent/configuration"
+	"github.com/imeredith/dire-agent/threadstore"
 )
 
 func (c *serverClient) handle(command Command) Response {
