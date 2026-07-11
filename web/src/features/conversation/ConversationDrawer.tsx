@@ -1,4 +1,4 @@
-import { Boxes, FileCode2, FolderOpen, ShieldCheck, Trash2, X } from "lucide-react";
+import { Boxes, Braces, FileCode2, FolderOpen, GitBranch, ShieldCheck, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { arraysEqual, mergeModelOptions, shortID, thinkingLevels, usageContextWindow } from "../../lib/display";
 import {
@@ -34,6 +34,7 @@ interface DrawerProps {
   onClose: () => void;
   onUpdate: (command: Omit<Command, "id">, notice?: string) => Promise<Conversation | null>;
   onDelete: (conversation: Conversation) => Promise<void>;
+  onManageEnvironments: (project: Conversation) => void;
 }
 
 export function ConversationDrawer(props: DrawerProps) {
@@ -152,12 +153,48 @@ export function ConversationDrawer(props: DrawerProps) {
             {!isChat && (
               <section className="drawer-section">
                 <div className="section-title">
+                  <span>Workspace</span>
+                  <small>{resource.worktree ? "Worktree" : "Local checkout"}</small>
+                </div>
+                <div className="resource-card sandbox-main-folder">
+                  {resource.worktree ? <GitBranch size={15} /> : <FolderOpen size={15} />}
+                  <div>
+                    <strong>{resource.worktree?.path || resource.cwd}</strong>
+                    <small>{resource.worktree ? "Isolated worktree" : "Local project folder"}</small>
+                  </div>
+                </div>
+                {resource.worktree && (
+                  <div className="worktree-metadata">
+                    <div><span>Source project</span><strong>{resource.worktree.source_cwd}</strong></div>
+                    <div><span>Repository</span><strong>{resource.worktree.source_repository}</strong></div>
+                    <div><span>Starting ref</span><strong>{resource.worktree.base_ref || "HEAD"}</strong></div>
+                    <div><span>Base commit</span><strong>{resource.worktree.base_commit}</strong></div>
+                    <div><span>Environment</span><strong>{resource.worktree.environment_id || "None"}</strong></div>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className="secondary-button full-width"
+                  disabled={running}
+                  onClick={() => props.onManageEnvironments(resource)}
+                >
+                  <Braces size={14} /> Manage local environments
+                </button>
+              </section>
+            )}
+
+            {!isChat && (
+              <section className="drawer-section">
+                <div className="section-title">
                   <span>Sandbox folders</span>
                   <small>{1 + (resource.additional_folders?.length ?? 0)} total</small>
                 </div>
                 <div className="resource-card sandbox-main-folder">
                   <FolderOpen size={15} />
-                  <div><strong>{resource.cwd}</strong><small>Main project folder · relative paths start here</small></div>
+                  <div>
+                    <strong>{resource.cwd}</strong>
+                    <small>{resource.worktree ? "Worktree folder" : "Main project folder"} · relative paths start here</small>
+                  </div>
                 </div>
                 <label className="settings-field sandbox-folder-editor">
                   <span>Additional folders</span>
@@ -246,7 +283,7 @@ export function ConversationDrawer(props: DrawerProps) {
               <div><strong>{isChat ? "Pathless chat" : resource.cwd}</strong><small>{shortID(resource.id)} · SQLite persisted</small></div>
             </div>
             <button className="danger-button" disabled={running} onClick={() => void props.onDelete(resource)}>
-              <Trash2 size={14} /> Delete {isChat ? "chat" : "project"} and history
+              <Trash2 size={14} /> Delete {isChat ? "chat" : "project"} and history{resource.worktree ? " · keep worktree · no cleanup" : ""}
             </button>
             {running && <p className="quiet-copy">Controls unlock when the current run settles.</p>}
           </div>

@@ -1,10 +1,11 @@
 import { AppWindow, Command, ExternalLink } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppSidebar, type AppView } from "./components/AppSidebar";
-import { ConnectionDialog, CreateDialog } from "./components/Dialogs";
+import { ConnectionDialog, CreateDialog, type CreateConversationValues } from "./components/Dialogs";
 import { TopBar } from "./components/TopBar";
 import { ConversationDrawer } from "./features/conversation/ConversationDrawer";
 import { ConversationView, type SendMode } from "./features/conversation/ConversationView";
+import { ProjectEnvironmentDialog } from "./features/conversation/ProjectEnvironmentDialog";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { useConversationSession } from "./hooks/useConversationSession";
 import { useCapabilityCommands } from "./hooks/useCapabilityCommands";
@@ -57,6 +58,8 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [dialog, setDialog] = useState<"chat" | "project" | "connection" | "">("");
+  const [environmentProject, setEnvironmentProject] = useState<Conversation | null>(null);
+  const [environmentRevision, setEnvironmentRevision] = useState(0);
   const [projectLaunchers, setProjectLaunchers] = useState<ProjectLauncher[]>(defaultProjectLaunchers);
   const [openLauncherIDs, setOpenLauncherIDs] = useState<string[]>([]);
   const [activeLauncherID, setActiveLauncherID] = useState("");
@@ -153,7 +156,7 @@ function App() {
       if (!cancelled) setProjectLaunchers(defaultProjectLaunchers);
     });
     return () => { cancelled = true; };
-  }, [daemon.client, daemon.status, daemon.version, selectedProjectID, settings.config?.revision]);
+  }, [daemon.client, daemon.status, daemon.version, environmentRevision, selectedProjectID, settings.config?.revision]);
 
   useEffect(() => {
     const available = new Set(projectLaunchers.map((launcher) => launcher.id));
@@ -219,7 +222,7 @@ function App() {
     setDrawerOpen(false);
   };
 
-  const createConversation = async (values: { name: string; cwd?: string; category?: string; additionalFolders?: string[] }) => {
+  const createConversation = async (values: CreateConversationValues) => {
     if (!daemon.client?.isOpen) return;
     setBusy("create");
     try {
@@ -229,6 +232,16 @@ function App() {
           cwd: values.cwd,
           category: values.category,
           additional_folders: values.additionalFolders,
+          worktree: values.worktree ? {
+            base_ref: values.worktree.baseRef,
+            environment_id: values.worktree.environmentID,
+            source_project_id: selected &&
+              conversationKind(selected) === "project" &&
+              (selected.worktree?.source_cwd || selected.cwd) ===
+                (values.worktree.sourceFolder || values.cwd)
+              ? selected.id
+              : undefined,
+          } : undefined,
         })
         : await daemon.client.createChat({ name: values.name });
       const canonical: Conversation = {
@@ -249,7 +262,10 @@ function App() {
   };
 
   const deleteConversation = useCallback(async (resource: Conversation) => {
-    if (!window.confirm(`Delete “${resource.name || resource.id}” and its history?`)) return;
+    const preserved = resource.worktree
+      ? ` The worktree checkout at ${resource.worktree.path || resource.cwd} will be preserved, and cleanup scripts will not run.`
+      : "";
+    if (!window.confirm(`Delete “${resource.name || resource.id}” and its history?${preserved}`)) return;
     if (!daemon.client?.isOpen) return;
     setBusy("delete");
     try {
@@ -478,6 +494,7 @@ function App() {
         onClose={() => setDrawerOpen(false)}
         onUpdate={session.update}
         onDelete={deleteConversation}
+        onManageEnvironments={(project) => setEnvironmentProject(project)}
       />
 
       {(dialog === "chat" || dialog === "project") && (
@@ -488,6 +505,19 @@ function App() {
           initialCategory={readAppStorage("project.category") || ""}
           onClose={() => setDialog("")}
           onCreate={createConversation}
+          onInspectWorkspace={(folder) => {
+            if (!daemon.client?.isOpen) return Promise.reject(new Error("Daemon is not connected"));
+            return daemon.client.inspectProjectWorkspace(folder);
+          }}
+        />
+      )}
+      {environmentProject && daemon.client?.isOpen && (
+        <ProjectEnvironmentDialog
+          client={daemon.client}
+          project={environmentProject}
+          onClose={() => setEnvironmentProject(null)}
+          onNotice={notify}
+          onChanged={() => setEnvironmentRevision((current) => current + 1)}
         />
       )}
       {dialog === "connection" && (

@@ -80,6 +80,7 @@ var supportedCommands = []string{
 	"set_model", "set_thread_name", "set_session_name", "set_thinking_level", "set_steering_mode", "set_follow_up_mode", "set_tools",
 	"set_chat_name", "set_conversation_name", "get_available_tools", "get_available_models", "get_commands", "delete_thread",
 	"get_project_launchers", "launch_project_app",
+	"inspect_project_workspace", "get_project_environments", "put_project_environment", "delete_project_environment",
 	"get_capabilities", "config_get", "config_effective", "config_validate", "config_update",
 	"spawn_agent", "list_agents", "get_agent", "send_agent_message", "wait_agents", "interrupt_agent", "delete_agent",
 	"list_capability_commands", "execute_capability_command",

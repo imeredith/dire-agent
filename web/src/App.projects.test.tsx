@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { mockState, projectFixture, resetMockDaemon } from "./test/mock-daemon";
+import { environmentFixture, mockState, projectFixture, resetMockDaemon } from "./test/mock-daemon";
 
 vi.mock("./lib/daemon-client", async () => {
   const mock = await import("./test/mock-daemon");
@@ -160,6 +160,107 @@ describe("project categories and launchers", () => {
       additional_folders: ["/workspace/assets", "/workspace/shared"],
     })));
     expect(within(drawer).getByText("Main project folder · relative paths start here")).toBeInTheDocument();
+  });
+
+  it("creates an inspected worktree from a branch and local environment", async () => {
+    const user = userEvent.setup();
+    mockState.environments = [environmentFixture];
+    mockState.workspaceInspections["/workspace/"] = {
+      folder: "/workspace",
+      git_repository: true,
+      repository_root: "/workspace",
+      head: "abc123",
+      current_branch: "main",
+      branches: ["main", "feature/worktrees"],
+      environments: [environmentFixture],
+    };
+    let finishSetup: () => void = () => undefined;
+    mockState.createProjectWaiter = new Promise<void>((resolve) => { finishSetup = resolve; });
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", { name: "New project" }));
+    const dialog = screen.getByRole("dialog", { name: "Create project" });
+    await user.type(within(dialog).getByLabelText("Project name"), "Isolated task");
+    await user.selectOptions(within(dialog).getByLabelText("Project workspace"), "worktree");
+    await user.type(within(dialog).getByLabelText("Source project folder"), "/workspace/");
+    expect(within(dialog).getByRole("button", { name: "Create project" })).toBeDisabled();
+    await user.click(within(dialog).getByRole("button", { name: "Inspect source folder" }));
+
+    expect(await within(dialog).findByText("/workspace · main")).toBeInTheDocument();
+    await user.clear(within(dialog).getByLabelText("Starting ref"));
+    await user.type(within(dialog).getByLabelText("Starting ref"), "feature/worktrees");
+    await user.selectOptions(within(dialog).getByLabelText("Local environment"), "environment.toml");
+    await user.click(within(dialog).getByRole("button", { name: "Create project" }));
+
+    expect(within(dialog).getByRole("status")).toHaveTextContent("Creating the worktree and running its setup script");
+    expect(within(dialog).getByRole("button", { name: "Creating worktree…" })).toBeDisabled();
+
+    await waitFor(() => expect(mockState.requests).toContainEqual(expect.objectContaining({
+      type: "create_project",
+      options: expect.objectContaining({
+        name: "Isolated task",
+        cwd: "/workspace/",
+        worktree: {
+          base_ref: "feature/worktrees",
+          environment_id: "environment.toml",
+          source_project_id: "project_a",
+        },
+      }),
+    })));
+    expect(mockState.requests).toContainEqual({ type: "inspect_project_workspace", folder: "/workspace/" });
+    finishSetup();
+    expect(await screen.findByRole("button", { name: /Isolated task.*Worktree/ })).toBeInTheDocument();
+
+    await user.click(screen.getAllByRole("button", { name: "Open conversation details" })[0]);
+    const drawer = screen.getByRole("complementary", { name: "Conversation details" });
+    expect(within(drawer).getByText("Isolated worktree")).toBeInTheDocument();
+    expect(within(drawer).getByText("feature/worktrees")).toBeInTheDocument();
+    expect(within(drawer).getByText("environment.toml")).toBeInTheDocument();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    await user.click(within(drawer).getByRole("button", { name: "Delete project and history · keep worktree · no cleanup" }));
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining(
+      "will be preserved, and cleanup scripts will not run",
+    ));
+    confirm.mockRestore();
+  });
+
+  it("edits repo-local lifecycle scripts and project actions", async () => {
+    const user = userEvent.setup();
+    mockState.environments = [environmentFixture];
+    render(<App />);
+    await screen.findByLabelText("Message the agent");
+
+    await user.click(screen.getAllByRole("button", { name: "Open conversation details" })[0]);
+    const drawer = screen.getByRole("complementary", { name: "Conversation details" });
+    await user.click(within(drawer).getByRole("button", { name: "Manage local environments" }));
+    const dialog = await screen.findByRole("dialog", { name: "Local environments" });
+    expect(await within(dialog).findByDisplayValue("Development")).toBeInTheDocument();
+
+    const setup = within(dialog).getByLabelText("Setup scripts Default");
+    await user.clear(setup);
+    await user.type(setup, "npm ci\nnpm run build");
+    await user.type(within(dialog).getByLabelText("Cleanup scripts Linux"), "npm run clean");
+    await user.click(within(dialog).getByRole("button", { name: "Add action" }));
+    await user.type(within(dialog).getByLabelText("Action 2 name"), "Dev server");
+    await user.selectOptions(within(dialog).getByLabelText("Action 2 icon"), "run");
+    await user.selectOptions(within(dialog).getByLabelText("Action 2 platform"), "linux");
+    await user.type(within(dialog).getByLabelText("Action 2 command"), "npm run dev");
+    await user.click(within(dialog).getByRole("button", { name: "Save environment" }));
+
+    await waitFor(() => expect(mockState.requests).toContainEqual(expect.objectContaining({
+      type: "put_project_environment",
+      project_id: "project_a",
+      expected_hash: "environment-hash-1",
+      environment: expect.objectContaining({
+        id: "environment.toml",
+        setup: expect.objectContaining({ script: "npm ci\nnpm run build" }),
+        cleanup: expect.objectContaining({ linux: { script: "npm run clean" } }),
+        actions: expect.arrayContaining([
+          expect.objectContaining({ name: "Dev server", icon: "run", command: "npm run dev", platform: "linux" }),
+        ]),
+      }),
+    })));
+    expect(await screen.findByText("Local environment saved")).toBeInTheDocument();
   });
 
   it("keeps terminal tabs mounted, toggles shortcuts, closes sessions, and launches desktop apps", async () => {

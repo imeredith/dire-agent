@@ -26,22 +26,68 @@ func (m *Manager) CreateThread(ctx context.Context, options CreateThreadOptions)
 	if err != nil {
 		return threadstore.Thread{}, err
 	}
-	settings, err := m.runtimeSettings(ctx, id)
+	settingsID := id
+	providedCWD := strings.TrimSpace(options.CWD) != ""
+	if options.CWD == "" {
+		options.CWD = m.config.DefaultCWD
+	}
+	if options.Worktree != nil && strings.TrimSpace(options.Worktree.SourceProjectID) != "" {
+		source, sourceErr := m.Project(ctx, strings.TrimSpace(options.Worktree.SourceProjectID))
+		if sourceErr != nil || source.IsSubagent() {
+			return threadstore.Thread{}, errors.New("daemon: worktree source must be a top-level project")
+		}
+		sourceFolder := source.CWD
+		if source.Worktree != nil && source.Worktree.SourceCWD != "" {
+			sourceFolder = source.Worktree.SourceCWD
+		}
+		sourceFolder, err = canonicalProjectFolder(sourceFolder)
+		if err != nil {
+			return threadstore.Thread{}, err
+		}
+		if providedCWD {
+			provided, resolveErr := canonicalProjectFolder(options.CWD)
+			if resolveErr != nil {
+				return threadstore.Thread{}, resolveErr
+			}
+			if provided != sourceFolder {
+				return threadstore.Thread{}, errors.New("daemon: worktree folder does not match source_project_id")
+			}
+		}
+		options.CWD = sourceFolder
+		settingsID = firstNonEmpty(source.SettingsID, source.ID)
+	}
+	options.CWD, err = canonicalProjectFolder(options.CWD)
+	if err != nil {
+		return threadstore.Thread{}, err
+	}
+	settings, err := m.runtimeSettings(ctx, settingsID)
 	if err != nil {
 		return threadstore.Thread{}, err
 	}
 	if options.Model == "" {
 		options.Model = firstNonEmpty(settings.Model.ID, m.config.DefaultModel)
 	}
-	if options.CWD == "" {
-		options.CWD = m.config.DefaultCWD
-	}
-	options.CWD, err = canonicalProjectFolder(options.CWD)
-	if err != nil {
-		return threadstore.Thread{}, err
+	var worktree *threadstore.WorktreeInfo
+	var rollbackWorktree func() error
+	worktreePublished := false
+	if options.Worktree != nil {
+		request := *options.Worktree
+		request.EnvironmentID = strings.TrimSpace(request.EnvironmentID)
+		options.CWD, worktree, rollbackWorktree, err = m.createManagedWorktree(ctx, id, options.CWD, request)
+		if err != nil {
+			return threadstore.Thread{}, err
+		}
+		defer func() {
+			if !worktreePublished {
+				_ = rollbackWorktree()
+			}
+		}()
 	}
 	options.AdditionalFolders, err = canonicalAdditionalFolders(options.CWD, options.AdditionalFolders)
 	if err != nil {
+		if rollbackWorktree != nil {
+			err = errors.Join(err, rollbackWorktree())
+		}
 		return threadstore.Thread{}, err
 	}
 	if options.ThinkingLevel == "" {
@@ -56,11 +102,14 @@ func (m *Manager) CreateThread(ctx context.Context, options CreateThreadOptions)
 	if _, err := tools.BuiltinsWithOptions(options.CWD, options.Tools, tools.BuiltinOptions{
 		AdditionalFolders: options.AdditionalFolders,
 	}); err != nil {
+		if rollbackWorktree != nil {
+			err = errors.Join(err, rollbackWorktree())
+		}
 		return threadstore.Thread{}, err
 	}
 	thread := threadstore.Thread{
 		ID: id, Kind: threadstore.KindProject, Name: options.Name, Category: category,
-		Model: options.Model, CWD: options.CWD,
+		Model: options.Model, CWD: options.CWD, Worktree: worktree,
 		AdditionalFolders: append([]string(nil), options.AdditionalFolders...),
 		Instructions:      options.Instructions,
 		ThinkingLevel:     options.ThinkingLevel,
@@ -68,10 +117,21 @@ func (m *Manager) CreateThread(ctx context.Context, options CreateThreadOptions)
 		FollowUpMode:      firstNonEmpty(string(settings.Queues.FollowUpMode), "one-at-a-time"),
 		Tools:             append([]string(nil), options.Tools...), Status: "idle",
 	}
+	if settingsID != id {
+		thread.SettingsID = settingsID
+	}
 	if model, ok := m.modelInfo(thread.Model); ok {
 		thread.Usage.ContextWindow = model.ContextWindow
 	}
-	return m.createResource(ctx, thread, "project_created", "thread_created")
+	created, err := m.createResource(ctx, thread, "project_created", "thread_created")
+	if err != nil {
+		if rollbackWorktree != nil {
+			err = errors.Join(err, rollbackWorktree())
+		}
+		return threadstore.Thread{}, err
+	}
+	worktreePublished = true
+	return created, nil
 }
 
 func normalizeProjectCategory(category string) (string, error) {

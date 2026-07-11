@@ -130,6 +130,29 @@ func (c *serverClient) handle(command Command) Response {
 		response.Data = map[string]any{"models": c.manager.AvailableModels()}
 	case "get_project_launchers":
 		_, response.Data, err = projectLaunchers(c.ctx, c.manager, c.config, resourceID)
+	case "inspect_project_workspace":
+		response.Data, err = c.manager.InspectProjectWorkspace(c.ctx, resourceID, command.Folder)
+	case "get_project_environments":
+		response.Data, err = c.manager.ProjectEnvironments(c.ctx, resourceID, command.Folder)
+	case "put_project_environment":
+		if command.Environment == nil {
+			err = errors.New("daemon: environment is required")
+			break
+		}
+		environment := *command.Environment
+		if command.EnvironmentID != "" {
+			if environment.ID != "" && environment.ID != command.EnvironmentID {
+				err = errors.New("daemon: environment_id does not match environment.id")
+				break
+			}
+			environment.ID = command.EnvironmentID
+		}
+		response.Data, err = c.manager.PutProjectEnvironment(c.ctx, resourceID, command.Folder, environment, command.ExpectedHash)
+	case "delete_project_environment":
+		err = c.manager.DeleteProjectEnvironment(c.ctx, resourceID, command.Folder, command.EnvironmentID, command.ExpectedHash)
+		if err == nil {
+			response.Data = map[string]any{"deleted": true, "id": command.EnvironmentID}
+		}
 	case "launch_project_app":
 		var launcher configuration.ProjectLauncher
 		launcher, err = launchProjectDesktopApplication(c.ctx, c.manager, c.config, resourceID, command.LauncherID)
@@ -194,7 +217,11 @@ func (c *serverClient) handleConfig(command Command, resourceID string) (any, er
 	case "config_get":
 		return c.config.Load(c.ctx)
 	case "config_effective":
-		settings, found, err := c.config.Effective(c.ctx, resourceID)
+		scopeID := resourceID
+		if resource, resourceErr := c.manager.Thread(c.ctx, resourceID); resourceErr == nil {
+			scopeID = configScopeID(resource)
+		}
+		settings, found, err := c.config.Effective(c.ctx, scopeID)
 		return map[string]any{"settings": settings, "project_override": found}, err
 	case "config_validate":
 		if command.Config == nil {

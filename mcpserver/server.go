@@ -67,12 +67,16 @@ type createChatInput struct {
 }
 
 type createProjectInput struct {
-	Folder        string   `json:"folder" jsonschema:"absolute folder path for the project"`
-	Name          string   `json:"name,omitempty"`
-	Model         string   `json:"model,omitempty"`
-	Instructions  string   `json:"instructions,omitempty"`
-	ThinkingLevel string   `json:"thinking_level,omitempty"`
-	Tools         []string `json:"tools,omitempty"`
+	Folder          string   `json:"folder,omitempty" jsonschema:"absolute source-project folder; optional when source_project_id is supplied"`
+	Name            string   `json:"name,omitempty"`
+	Model           string   `json:"model,omitempty"`
+	Instructions    string   `json:"instructions,omitempty"`
+	ThinkingLevel   string   `json:"thinking_level,omitempty"`
+	Tools           []string `json:"tools,omitempty"`
+	Worktree        bool     `json:"worktree,omitempty" jsonschema:"create a managed detached Git worktree instead of using the source folder directly"`
+	BaseRef         string   `json:"base_ref,omitempty" jsonschema:"Git ref for the managed worktree; defaults to HEAD"`
+	EnvironmentID   string   `json:"environment_id,omitempty" jsonschema:"repo-local .codex environment ID whose setup script runs in the new worktree"`
+	SourceProjectID string   `json:"source_project_id,omitempty" jsonschema:"existing Dire Agent project whose settings the worktree inherits"`
 }
 
 type messagesInput struct {

@@ -96,6 +96,9 @@ func (m *Manager) resolveCapabilities(ctx context.Context, resource threadstore.
 }
 
 func configScopeID(resource threadstore.Thread) string {
+	if resource.SettingsID != "" {
+		return resource.SettingsID
+	}
 	if resource.RootID != "" {
 		return resource.RootID
 	}

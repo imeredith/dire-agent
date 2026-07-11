@@ -34,6 +34,7 @@ func Run(arguments []string) error {
 	_ = os.Unsetenv("DIRE_AGENT_CONTROL_TOKEN")
 	address := flags.String("addr", "127.0.0.1:7331", "HTTP/WebSocket listen address")
 	dataDirectory := flags.String("data-dir", "", "directory containing one SQLite file per project")
+	worktreeRoot := flags.String("worktree-root", "", "directory containing managed Git worktrees")
 	configPath := flags.String("config", "", "versioned daemon configuration file")
 	authFile := flags.String("auth-file", "", "Codex CLI auth.json path")
 	defaultModel := flags.String("model", "gpt-5.6", "default model")
@@ -90,6 +91,9 @@ func Run(arguments []string) error {
 	if *dataDirectory == "" {
 		*dataDirectory = DefaultDataDirectory(home)
 	}
+	if *worktreeRoot == "" {
+		*worktreeRoot = DefaultWorktreeDirectory(home)
+	}
 	if *configPath == "" {
 		*configPath = configuration.DefaultPath(home)
 	}
@@ -138,7 +142,7 @@ func Run(arguments []string) error {
 	manager, err := daemon.NewManager(daemon.ManagerConfig{
 		Store: store, Provider: provider, DefaultModel: *defaultModel, DefaultCWD: *defaultCWD,
 		DefaultTools: SplitList(*defaultTools), DefaultThinking: string(loadedConfig.Global.Thinking.Level),
-		Settings: configStore, Capabilities: capabilities,
+		Settings: configStore, Capabilities: capabilities, WorktreeRoot: *worktreeRoot,
 	})
 	if err != nil {
 		provider.Close()
@@ -269,6 +273,12 @@ func DefaultDataDirectory(home string) string {
 		}
 	}
 	return projects
+}
+
+// DefaultWorktreeDirectory keeps disposable checkouts separate from the
+// per-conversation SQLite store.
+func DefaultWorktreeDirectory(home string) string {
+	return filepath.Join(home, ".dire-agent", "worktrees")
 }
 
 func SplitList(value string) []string {

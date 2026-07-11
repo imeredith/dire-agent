@@ -18,7 +18,7 @@ The complete additive command envelope is:
 ```text
 id, type
 conversation_id, chat_id, project_id, thread_id
-message, name, category, streaming_behavior
+message, name, category, folder, streaming_behavior
 options, chat_options
 after, limit
 model, level, mode, tools
@@ -27,6 +27,7 @@ agent_id, parent_id, agent_name, agent_role, task, profile,
 agent_ids, wake, timeout_ms
 command_name, arguments, attachments
 additional_folders
+environment_id, environment, expected_hash
 ```
 
 Only fields used by a command need to be sent. A conversation may be addressed
@@ -75,7 +76,7 @@ Create a pathless standalone chat:
 }
 ```
 
-Create a folder-scoped project:
+Create a project from an existing local checkout:
 
 ```json
 {
@@ -93,11 +94,66 @@ Create a folder-scoped project:
 }
 ```
 
-The daemon canonicalizes project `cwd` and every `additional_folders` entry,
-rejecting relative, missing, root, and non-directory additions. The `cwd`
-remains the main project folder and working directory. Relative tool paths
-resolve there; additional folders use their canonical absolute paths. A
-standalone chat has an empty folder and no local built-in tools.
+Create a managed detached worktree instead:
+
+```json
+{
+  "id": "req-worktree",
+  "type": "create_project",
+  "options": {
+    "name": "Demo worktree",
+    "cwd": "/absolute/path/to/source-repository",
+    "worktree": {
+      "base_ref": "main",
+      "environment_id": "node.toml"
+    }
+  }
+}
+```
+
+`options.worktree` distinguishes managed-worktree creation from an ordinary
+local project. `base_ref` defaults to `HEAD`; `environment_id` optionally names
+one `.codex/environments/*.toml` definition whose setup runs before the project
+is published. `source_project_id` may be supplied inside `worktree` instead of
+selecting the source solely by `cwd`; it uses that existing project's source
+workspace and settings but does not transfer its conversation or provider
+state.
+
+The daemon canonicalizes a local project's `cwd` and every
+`additional_folders` entry, rejecting relative, missing, root, and
+non-directory additions. For a managed project, it resolves the source Git
+repository and starting ref, creates a detached checkout below
+`~/.dire-agent/worktrees`, and returns the managed folder as the project's
+`cwd`. If the selected source folder is below the repository root,
+`project_relative_path` is preserved and the corresponding subdirectory inside
+the new checkout becomes `cwd`; setup also runs there. In either mode, `cwd` is
+the main working directory: relative tool paths resolve there and additional
+folders use canonical absolute paths.
+
+Managed project metadata also includes its ownership record; local projects
+omit `worktree`:
+
+```json
+{
+  "worktree": {
+    "source_cwd": "/absolute/path/to/source-repository",
+    "source_repository": "/absolute/path/to/source-repository",
+    "path": "/home/user/.dire-agent/worktrees/project_...",
+    "project_relative_path": "",
+    "base_ref": "main",
+    "base_commit": "0123456789abcdef...",
+    "environment_id": "node.toml"
+  }
+}
+```
+
+Managed worktrees start from committed Git state. Modified, untracked, and
+ignored files in the source checkout are not copied. Setup runs only during new
+worktree creation, never for a local project or a restored project. A failed,
+unpublished creation is force-rolled back; after successful publication the
+worktree directory and Git registration are durable. Deleting its conversation
+history preserves them. A standalone chat has an empty folder and no local
+built-in tools.
 
 Conversation commands:
 
@@ -128,6 +184,151 @@ sequence closes subscription/reconnect gaps.
 Creating a conversation automatically subscribes that WebSocket connection.
 `prompt`, `steer`, `follow_up`, and `spawn_agent` also subscribe to their target
 when accepted.
+
+### Workspace inspection and local environments
+
+Repository inspection and Codex-compatible environment CRUD use:
+
+```text
+inspect_project_workspace
+get_project_environments
+put_project_environment
+delete_project_environment
+```
+
+`inspect_project_workspace` accepts either `project_id` or an absolute
+`folder`:
+
+```json
+{
+  "id": "req-inspect",
+  "type": "inspect_project_workspace",
+  "folder": "/absolute/path/to/source-project"
+}
+```
+
+Its result has this shape:
+
+```json
+{
+  "folder": "/absolute/path/to/source-project",
+  "git_repository": true,
+  "repository_root": "/absolute/path/to/repository",
+  "project_relative_path": "",
+  "head": "0123456789abcdef...",
+  "current_branch": "main",
+  "branches": ["main", "release"],
+  "environments": []
+}
+```
+
+Repository and branch fields are omitted when unavailable. The same
+`environments` array is returned by `get_project_environments`. Each entry is:
+
+```json
+{
+  "id": "node.toml",
+  "config_path": "/absolute/path/to/repository/.codex/environments/node.toml",
+  "hash": "optimistic-content-hash",
+  "version": 1,
+  "name": "Node development",
+  "setup": {
+    "script": "npm install",
+    "darwin": {"script": ""},
+    "linux": {"script": ""},
+    "win32": {"script": ""}
+  },
+  "cleanup": {"script": ""},
+  "actions": [{
+    "id": "env-a1b2c3d4e5f6",
+    "name": "Run development server",
+    "icon": "run",
+    "command": "npm run dev"
+  }]
+}
+```
+
+`put_project_environment` accepts the target `project_id` or `folder`, an
+`environment` object, and optional `expected_hash`. The hash is an optimistic
+write guard; a stale value fails rather than overwriting an edit made elsewhere.
+`delete_project_environment` accepts the same target, `environment_id`, and an
+optional `expected_hash`, returning `{"deleted":true,"id":"node.toml"}`.
+
+```json
+{
+  "id": "req-put-environment",
+  "type": "put_project_environment",
+  "folder": "/absolute/path/to/source-project",
+  "expected_hash": "hash-returned-by-the-last-read",
+  "environment": {
+    "id": "node.toml",
+    "version": 1,
+    "name": "Node development",
+    "setup": {"script": "npm install"},
+    "actions": []
+  }
+}
+```
+
+Omit `expected_hash` when creating a new definition. Deletion uses:
+
+```json
+{
+  "id": "req-delete-environment",
+  "type": "delete_project_environment",
+  "project_id": "project_...",
+  "environment_id": "node.toml",
+  "expected_hash": "hash-returned-by-the-last-read"
+}
+```
+
+Files are stored below the selected source/project folder as
+`.codex/environments/ENVIRONMENT_ID` (so projects in a monorepo may have
+different definitions). Every ID must end in `.toml`, with this schema:
+
+```toml
+version = 1
+name = "Node development"
+
+[setup]
+script = """
+npm install
+"""
+
+[setup.darwin]
+script = """
+# Optional macOS setup
+"""
+
+[setup.linux]
+script = """
+# Optional Linux setup
+"""
+
+[setup.win32]
+script = """
+# Optional Windows setup
+"""
+
+[cleanup]
+script = """
+# Optional cleanup
+"""
+
+[[actions]]
+name = "Run development server"
+icon = "run"
+command = "npm run dev"
+```
+
+`cleanup` and its `darwin`, `linux`, and `win32` sections are optional and use
+the same shape as `setup`. A non-empty host-specific setup script replaces the
+base script; an empty or absent host-specific script falls back to
+`setup.script`. Cleanup definitions are parsed, validated, and round-tripped,
+but are not executed in this release because published worktrees have no
+automatic retention cleanup. Action icons are `tool`, `run`, `debug`, or
+`test`. An omitted action platform means all hosts; an explicit platform is
+`darwin`, `linux`, or `win32`.
 
 ## Run controls and events
 
@@ -286,6 +487,19 @@ project folder and returns `{launched,id,label}`. Desktop apps run on the daemon
 machine, outlive the requesting WebSocket, and share the same user-operated,
 non-sandboxed permission boundary as terminal tabs.
 
+Applicable environment actions are also exposed by `get_project_launchers` as
+terminal-kind launchers. Their IDs use `env-` followed by 12 lowercase SHA-256
+hex characters, derived from the environment ID, action index, and action name;
+labels include both environment and action names when needed. A local project
+receives actions from all environments discovered in its repository. A managed
+worktree receives the actions from its selected source environment; definitions
+continue to resolve through the recorded source checkout even though the
+terminal starts in the managed checkout. As with every other terminal launcher,
+the browser sends only the returned launcher ID. The daemon resolves the stored
+command, starts it in the project `cwd`, and never exposes it as a
+model-callable tool. Environment action tabs run with the daemon user's normal
+permissions outside the agent sandbox.
+
 Thinking levels are `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, and
 `max`; `off` remains accepted for compatibility. Built-in tool names are
 `read`, `grep`, `find`, `ls`, `write`, `edit`, and `bash`.
@@ -370,6 +584,9 @@ Configuration supports:
 
 Only trusted local extension adapters are executed. Git/registry installation
 and automatic desktop sync are not currently performed.
+Repository-local `.codex/environments/*.toml` files are inspected and mutated
+through the separate workspace commands above; they are not part of the
+daemon-wide revisioned configuration document.
 
 ## Child agents
 
@@ -434,7 +651,10 @@ Each project, standalone chat, and child agent owns `<id>.db`. Provider state is
 restored lazily after restart; a conversation recorded as running after an
 unclean shutdown recovers as idle. Messages, events, usage, and tool records
 remain queryable when no client was connected. Existing `thread_*.db` files
-remain valid.
+remain valid. Deleting a successfully published managed-worktree project
+removes its conversation history but deliberately preserves the checkout and
+its Git worktree registration. Only an unpublished worktree whose creation
+fails is automatically force-rolled back.
 
 Project file tools enforce canonical containment across the main project folder
 and its included folders. Relative paths resolve from the main folder;
@@ -458,5 +678,7 @@ folder set. Remote MCP calls are outside that filesystem boundary.
   theme/app/MCP metadata are not yet surfaced or imported automatically.
 - Desktop sync fields are configuration metadata; install the standard MCP
   plugin from `integrations/dire-agent` manually.
+- Managed worktrees do not yet implement Codex task handoff, retention-policy
+  or automatic-cleanup controls, or worktree snapshot/restore parity.
 - Compaction and ordinary conversation fork/tree navigation are not available.
   Persistent child-agent trees are supported separately.

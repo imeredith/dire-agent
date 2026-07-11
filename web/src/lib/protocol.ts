@@ -62,6 +62,7 @@ export const emptyUsage: Usage = {
 export interface Conversation {
   id: string;
   kind?: ConversationKind;
+  settings_id?: string;
   name?: string;
   category?: string;
   model: string;
@@ -72,10 +73,70 @@ export interface Conversation {
   steering_mode: QueueMode;
   follow_up_mode: QueueMode;
   tools: string[];
+  worktree?: ProjectWorktree;
   usage?: Usage;
   status: "idle" | "running" | string;
   created_at: string;
   updated_at: string;
+}
+
+export interface ProjectWorktreeOptions {
+  base_ref?: string;
+  environment_id?: string;
+  source_project_id?: string;
+}
+
+export interface ProjectWorktree {
+  source_cwd: string;
+  source_repository: string;
+  path: string;
+  project_relative_path?: string;
+  base_ref: string;
+  base_commit: string;
+  environment_id?: string;
+}
+
+export type ProjectEnvironmentPlatform = "darwin" | "linux" | "win32";
+export type ProjectEnvironmentActionIcon = "tool" | "run" | "debug" | "test";
+
+export interface ProjectEnvironmentScript {
+  script: string;
+}
+
+export interface ProjectEnvironmentLifecycle extends ProjectEnvironmentScript {
+  darwin?: ProjectEnvironmentScript;
+  linux?: ProjectEnvironmentScript;
+  win32?: ProjectEnvironmentScript;
+}
+
+export interface ProjectEnvironmentAction {
+  id?: string;
+  name: string;
+  icon?: ProjectEnvironmentActionIcon | null;
+  command: string;
+  platform?: ProjectEnvironmentPlatform;
+}
+
+export interface ProjectEnvironment {
+  id: string;
+  config_path?: string;
+  hash?: string;
+  version: number;
+  name: string;
+  setup: ProjectEnvironmentLifecycle;
+  cleanup?: ProjectEnvironmentLifecycle;
+  actions: ProjectEnvironmentAction[];
+}
+
+export interface ProjectWorkspaceInspection {
+  folder: string;
+  git_repository: boolean;
+  repository_root?: string;
+  project_relative_path?: string;
+  head?: string;
+  current_branch?: string;
+  branches: string[];
+  environments: ProjectEnvironment[];
 }
 
 export type Project = Conversation;
@@ -169,6 +230,7 @@ export interface CreateProjectOptions {
   instructions?: string;
   thinking_level?: ThinkingLevel;
   tools?: string[];
+  worktree?: ProjectWorktreeOptions;
 }
 
 export interface CreateChatOptions {
@@ -224,6 +286,10 @@ export interface Command {
   arguments?: string;
   launcher_id?: string;
   attachments?: ImageAttachment[];
+  folder?: string;
+  environment_id?: string;
+  environment?: ProjectEnvironment;
+  expected_hash?: string;
 }
 
 export interface ResponseEnvelope<T = unknown> {
