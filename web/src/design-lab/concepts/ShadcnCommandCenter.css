@@ -24,6 +24,7 @@
     linear-gradient(135deg, #07100f 0%, #08110f 48%, #060d0c 100%);
   color: var(--scc-text);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color-scheme: dark;
 }
 
 .scc-shell button { font-family: inherit; }
@@ -223,7 +224,7 @@
 .scc-changes > button strong { color: var(--scc-soft); font: 8px ui-monospace, SFMono-Regular, Menlo, monospace; }
 .scc-changes > button small { color: var(--scc-muted); font-size: 7px; }
 .scc-changes code { color: var(--scc-mint); font-size: 8px; }
-.scc-browser-frame { overflow: hidden; border: 1px solid var(--scc-line-strong); border-radius: 10px; background: #e9efec; box-shadow: 0 20px 50px rgb(0 0 0 / 20%); }
+.scc-browser-frame { overflow: hidden; border: 1px solid var(--scc-line-strong); border-radius: 10px; background: #08110f; box-shadow: 0 20px 50px rgb(0 0 0 / 28%); }
 .scc-browser-bar { display: flex; height: 31px; align-items: center; gap: 5px; background: #15231f; padding: 0 9px; }
 .scc-browser-bar i { width: 6px; height: 6px; border-radius: 99px; background: #4b625b; }
 .scc-browser-bar i:first-child { background: #fb7185; }
@@ -233,12 +234,12 @@
 .scc-browser-page { display: grid; height: 240px; grid-template-columns: 18% 1fr 23%; gap: 10px; padding: 11px; }
 .scc-browser-page aside,
 .scc-browser-page section,
-.scc-browser-page main { display: grid; align-content: start; gap: 8px; border-radius: 7px; background: #fff; padding: 9px; }
+.scc-browser-page main { display: grid; align-content: start; gap: 8px; border: 1px solid #20342e; border-radius: 7px; background: #0d1916; padding: 9px; }
 .scc-browser-page aside span,
-.scc-browser-page section span { height: 12px; border-radius: 4px; background: #d9e5e0; }
+.scc-browser-page section span { height: 12px; border-radius: 4px; background: #223730; }
 .scc-browser-page main { grid-template-columns: 1fr 1fr; }
-.scc-browser-page main div { height: 65px; border-radius: 6px; background: #dce8e3; }
-.scc-browser-page main div.wide { background: #c9f4e1; }
+.scc-browser-page main div { height: 65px; border-radius: 6px; background: #182a25; }
+.scc-browser-page main div.wide { background: #1b4a3b; }
 
 .scc-agent-heading { justify-content: space-between; gap: 10px; margin-bottom: 9px; padding: 0 2px; }
 .scc-agent-heading > div { display: grid; gap: 4px; }

@@ -17,6 +17,7 @@
   overflow: hidden;
   color: #e9f0fa;
   background: var(--af-bg);
+  color-scheme: dark;
 }
 
 .af-global-header {

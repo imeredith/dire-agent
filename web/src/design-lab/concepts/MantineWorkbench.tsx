@@ -50,6 +50,7 @@ import "./MantineWorkbench.css";
 
 const workbenchTheme = createTheme({
   primaryColor: "violet",
+  primaryShade: { light: 6, dark: 5 },
   defaultRadius: "md",
   fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
   headings: { fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" },
@@ -495,7 +496,7 @@ function TaskGroup(props: {
 
 export function MantineWorkbench() {
   return (
-    <MantineProvider theme={workbenchTheme} defaultColorScheme="light">
+    <MantineProvider theme={workbenchTheme} defaultColorScheme="dark" forceColorScheme="dark">
       <MantineWorkbenchInner />
     </MantineProvider>
   );

@@ -65,7 +65,7 @@ export function AriaFocusMode() {
   };
 
   return (
-    <div className="aria-focus" data-theme="focus-light">
+    <div className="aria-focus" data-theme="focus-dark">
       <a className="aria-focus__skip" href="#aria-focus-content">Skip to conversation</a>
 
       <header className="aria-focus__header">
