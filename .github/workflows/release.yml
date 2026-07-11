@@ -1,0 +1,182 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate source
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Validate release inputs
+        run: |
+          sh -n install.sh
+          case "$GITHUB_REF_NAME" in
+            v[A-Za-z0-9._+-]*) ;;
+            *) echo "Unsupported release tag: $GITHUB_REF_NAME" >&2; exit 1 ;;
+          esac
+          case "$GITHUB_REF_NAME" in
+            *[!A-Za-z0-9._+-]*) echo "Unsupported release tag: $GITHUB_REF_NAME" >&2; exit 1 ;;
+          esac
+
+      - name: Install web dependencies
+        run: npm ci --prefix web
+
+      - name: Test and type-check web UI
+        run: |
+          npm --prefix web test
+          npm --prefix web run typecheck
+
+      - name: Build embedded web UI
+        run: npm --prefix web run build:embedded
+
+      - name: Test Go packages
+        run: |
+          go vet ./...
+          go test ./...
+          go test -race ./...
+          go test -tags webui ./...
+
+      - name: Save embedded web UI
+        uses: actions/upload-artifact@v4
+        with:
+          name: webui-dist
+          path: internal/webui/dist
+          if-no-files-found: error
+          retention-days: 1
+
+  build:
+    name: Build ${{ matrix.asset }}
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: darwin
+            goarch: amd64
+            asset: dire-agent-darwin-amd64
+          - goos: darwin
+            goarch: arm64
+            asset: dire-agent-darwin-arm64
+          - goos: linux
+            goarch: amd64
+            asset: dire-agent-linux-amd64
+          - goos: linux
+            goarch: arm64
+            asset: dire-agent-linux-arm64
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Restore embedded web UI
+        uses: actions/download-artifact@v4
+        with:
+          name: webui-dist
+          path: internal/webui/dist
+
+      - name: Build static binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          ASSET: ${{ matrix.asset }}
+        run: |
+          build_date=$(git show -s --format=%cI "$GITHUB_SHA")
+          ldflags="-s -w \
+            -X github.com/imeredith/dire-agent/internal/buildinfo.Version=$GITHUB_REF_NAME \
+            -X github.com/imeredith/dire-agent/internal/buildinfo.Commit=$GITHUB_SHA \
+            -X github.com/imeredith/dire-agent/internal/buildinfo.Date=$build_date"
+          CGO_ENABLED=0 go build \
+            -tags webui \
+            -trimpath \
+            -ldflags "$ldflags" \
+            -o "dist/$ASSET" \
+            ./cmd/dire-agent
+
+      - name: Save binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: dist/${{ matrix.asset }}
+          if-no-files-found: error
+          retention-days: 1
+
+  release:
+    name: Publish GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Download binaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: dire-agent-*
+          path: release
+          merge-multiple: true
+
+      - name: Create release metadata
+        run: |
+          for asset in \
+            dire-agent-darwin-amd64 \
+            dire-agent-darwin-arm64 \
+            dire-agent-linux-amd64 \
+            dire-agent-linux-arm64
+          do
+            test -f "release/$asset"
+          done
+          printf '%s\n' "$GITHUB_REF_NAME" > release/version.txt
+          (
+            cd release
+            sha256sum dire-agent-* > checksums.txt
+          )
+          cp install.sh release/install.sh
+          chmod 755 release/install.sh
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            release/dire-agent-* \
+            release/checksums.txt \
+            release/version.txt \
+            release/install.sh \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "Dire Agent $GITHUB_REF_NAME" \
+            --generate-notes

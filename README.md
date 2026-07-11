@@ -50,12 +50,14 @@ additional folder is addressed by its absolute path. New projects receive only
 containment across the configured roots; `write` and `edit` cannot escape the
 project sandbox.
 
-`bash` always runs through macOS `/usr/bin/sandbox-exec`, with the main project
-folder, included folders, and temporary directories writable and network
-access denied. It fails closed when the sandbox is unavailable. Configured
-stdio MCP servers and trusted extension processes receive the same included
-folders and are also wrapped by `sandbox-exec` unless their sandbox mode is
-explicitly `off`:
+`bash` runs through macOS `/usr/bin/sandbox-exec`, with the main project folder,
+included folders, and temporary directories writable and network access denied.
+It fails closed when the sandbox is unavailable. Linux builds currently support
+the file tools and clients, but the `bash` tool and sandboxed local MCP/extension
+processes remain unavailable until a Linux process sandbox is implemented.
+Configured stdio MCP servers and trusted extension processes receive the same
+included folders and are also wrapped by `sandbox-exec` unless their sandbox
+mode is explicitly `off`:
 
 - `strict`: project sandbox/temp writes only; network denied.
 - `workspace`: the same file boundary with network allowed.
@@ -85,15 +87,62 @@ continuous. The PTY advertises a dark true-color environment and removes
 inherited color opt-outs such as `NO_COLOR`, so lazygit and LazyVim can render
 their intended palettes.
 
-The daemon currently has no transport authentication. It listens on loopback
-by default and refuses a non-loopback address unless `-allow-remote` is passed.
-Do not expose it directly to an untrusted network.
+The daemon's WebSocket and content APIs currently have no transport
+authentication. It listens on loopback by default and refuses a non-loopback
+address unless `-allow-remote` is passed. Do not expose it directly to an
+untrusted network.
 
-## Start the daemon
+## Install and run
+
+Dire Agent publishes separate macOS and Linux binaries for Intel/AMD64 and
+ARM64. Install the current release with:
+
+```sh
+curl --proto '=https' --tlsv1.2 -fsSL \
+  https://github.com/imeredith/dire-agent/releases/latest/download/install.sh | sh
+```
+
+The installer verifies the release SHA-256 checksum and puts `dire-agent` in a
+writable directory already on `PATH` when possible. Set `DIRE_AGENT_INSTALL_DIR`
+to choose another directory, or `DIRE_AGENT_VERSION` to install a particular
+release.
+
+For an existing installation, prefer `dire-agent upgrade`; it coordinates the
+binary replacement with the managed daemon and restarts it when necessary.
+
+The release workflow publishes the installer, version metadata, checksums, and
+all four binaries whenever a `v*` tag is pushed.
+
+Authenticate once, then run the TUI from any project directory:
 
 ```sh
 codex login
-go run ./cmd/dire-agentd
+dire-agent
+```
+
+Running `dire-agent` starts its background daemon if necessary and opens the
+terminal UI for the current folder. A trailing message becomes the initial
+prompt. Lifecycle and update commands are:
+
+```sh
+dire-agent start
+dire-agent status
+dire-agent stop
+dire-agent upgrade
+dire-agent upgrade --version v0.2.0
+dire-agent version
+```
+
+The managed daemon state and logs live under `~/.dire-agent/run` and
+`~/.dire-agent/logs`. Upgrades download and verify the replacement before
+stopping a running managed daemon, then restart it after the atomic replacement.
+
+## Run from source
+
+```sh
+codex login
+go run ./cmd/dire-agent start
+go run ./cmd/dire-agent
 ```
 
 Defaults:
@@ -118,7 +167,7 @@ project attachments use the `.dire-agent` namespace; previously stored
 Override the main paths and project defaults with flags:
 
 ```sh
-go run ./cmd/dire-agentd \
+go run ./cmd/dire-agent daemon \
   -data-dir ./agent-data \
   -config ./dire-agent.json \
   -cwd /path/to/project \
@@ -137,16 +186,16 @@ an update preserves the stored value.
 Create or open a folder project:
 
 ```sh
-go run ./cmd/dire-agentctl
-go run ./cmd/dire-agentctl -project PROJECT_ID
-go run ./cmd/dire-agentctl -folder /path/to/project
+dire-agent
+dire-agent tui -project PROJECT_ID
+dire-agent tui -folder /path/to/project
 ```
 
 Create or open a pathless standalone chat:
 
 ```sh
-go run ./cmd/dire-agentctl -standalone
-go run ./cmd/dire-agentctl -chat CHAT_ID
+dire-agent tui -standalone
+dire-agent tui -chat CHAT_ID
 ```
 
 `-message` supplies an initial prompt. Enter sends, `Ctrl+J` or `Shift+Enter`
@@ -183,7 +232,7 @@ Trusted skills can be requested with `/skill:NAME arguments` or `$NAME`. These
 remain normal prompts in the UI; the daemon expands the selected `SKILL.md`
 instructions for that run.
 
-Non-interactive `dire-agentctl -action` values include `prompt`, `steer`,
+Non-interactive `dire-agent tui -action` values include `prompt`, `steer`,
 `follow-up`, `abort`, `list`, `list-chats`, `state`, `create`, and
 `create-chat`.
 
@@ -227,12 +276,12 @@ and `/healthz` to the local daemon. The feature-by-feature Web UI test guide is 
 
 ### Production Web UI
 
-Build a single daemon binary containing the optimized Vite application:
+Build a single Dire Agent binary containing the optimized Vite application:
 
 ```sh
 npm --prefix web install
 make production
-./dist/dire-agentd
+./dist/dire-agent start
 ```
 
 Open `http://127.0.0.1:7331`. The embedded UI, `/ws`, `/terminal`,
@@ -245,7 +294,7 @@ A normal development binary can instead host an existing build directory:
 
 ```sh
 npm --prefix web run build
-go run ./cmd/dire-agentd -web-dir ./web/dist
+go run ./cmd/dire-agent daemon -web-dir ./web/dist
 ```
 
 The production-tagged binary serves its embedded UI automatically. Pass
@@ -312,8 +361,8 @@ bounded `mcpctx__SERVER__list_resources`, `read_resource`, `list_prompts`, and
 `get_prompt` tools. Discovery follows pagination and tool-list change
 notifications. Server/tool allowlists, timeouts, bounded results, secret
 redaction, same-origin HTTP redirects, and connection diagnostics are enforced.
-The outward `dire-agent-mcp` bridge is rejected as an inward server to prevent
-recursion.
+The outward `dire-agent mcp` bridge (and the legacy `dire-agent-mcp` wrapper) is
+rejected as an inward server to prevent recursion.
 
 Extensions use an NDJSON JSON-RPC subprocess protocol rather than loading
 JavaScript, TypeScript, or Go plugins into daemon memory. A local source must be
@@ -325,21 +374,21 @@ automatically downloaded or executed.
 
 ## Codex/ChatGPT desktop bridge
 
-`dire-agent-mcp` exposes the daemon through standard MCP over stdio; it does not
+`dire-agent mcp` exposes the daemon through standard MCP over stdio; it does not
 use app-server:
 
 ```sh
-go build -o /usr/local/bin/dire-agent-mcp ./cmd/dire-agent-mcp
-go run ./cmd/dire-agentd
+dire-agent start
+dire-agent mcp
 ```
 
 The local Codex plugin is in [integrations/dire-agent](integrations/dire-agent). It
 provides MCP tools to list/create chats and projects, inspect state/history,
 send a message (optionally waiting for settlement), abort a run, and coordinate
 persistent child-agent teams. Install
-that directory as a local plugin after ensuring `dire-agent-mcp` is on the desktop
-app's PATH. It manages separate Dire Agent conversations; it does not transfer the
-current Codex task.
+that directory as a local plugin after ensuring `dire-agent` is on the desktop
+app's PATH. It manages separate Dire Agent conversations; it does not transfer
+the current Codex task.
 
 Desktop sync paths and modes are configurable, but automatic plugin install,
 marketplace editing, config import/export, and file watching are not yet
@@ -357,7 +406,7 @@ performed by the daemon.
 - `agentteam`: persistent child-agent model tools and shared types.
 - `daemon`, `client`, `chatui`: manager, WebSocket API, Go client, and Bubble
   Tea UI.
-- `mcpserver`, `cmd/dire-agent-mcp`, `integrations/dire-agent`: desktop MCP bridge.
+- `mcpserver`, `dire-agent mcp`, `integrations/dire-agent`: desktop MCP bridge.
 - `web`: React/Tailwind/Vite browser client.
 
 ## Current limitations

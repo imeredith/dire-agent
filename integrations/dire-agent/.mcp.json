@@ -1,8 +1,9 @@
 {
   "mcpServers": {
     "dire-agent": {
-      "command": "dire-agent-mcp",
+      "command": "dire-agent",
       "args": [
+        "mcp",
         "--daemon",
         "ws://127.0.0.1:7331/ws"
       ]

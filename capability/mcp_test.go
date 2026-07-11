@@ -84,6 +84,14 @@ func TestRecursiveMCPRejectsCurrentAndLegacyBridgeNames(t *testing.T) {
 			t.Errorf("recursiveMCP(%q) = false", command)
 		}
 	}
+	for _, command := range []string{"dire-agent", "/usr/local/bin/dire-agent", "dire-agent.exe"} {
+		if !recursiveMCP(configuration.MCPServer{Transport: configuration.MCPStdio, Command: command, Args: []string{"mcp"}}) {
+			t.Errorf("recursiveMCP(%q mcp) = false", command)
+		}
+	}
+	if recursiveMCP(configuration.MCPServer{Transport: configuration.MCPStdio, Command: "dire-agent", Args: []string{"ask"}}) {
+		t.Fatal("recursiveMCP rejected a non-MCP dire-agent subcommand")
+	}
 	if recursiveMCP(configuration.MCPServer{Transport: configuration.MCPStdio, Command: "other-mcp"}) {
 		t.Fatal("recursiveMCP accepted an unrelated stdio server")
 	}

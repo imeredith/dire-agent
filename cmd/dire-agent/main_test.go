@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 )
@@ -34,5 +35,39 @@ func TestReadPromptRejectsEmptyInput(t *testing.T) {
 
 	if _, err := readPrompt(nil, strings.NewReader(" \n")); err == nil {
 		t.Fatal("readPrompt() error = nil, want an error")
+	}
+}
+
+func TestRunVersionDoesNotStartDaemon(t *testing.T) {
+	t.Parallel()
+	var output bytes.Buffer
+	if err := run([]string{"version"}, strings.NewReader(""), &output, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(output.String(), "dire-agent ") {
+		t.Fatalf("version output = %q", output.String())
+	}
+}
+
+func TestRunHelpDocumentsLifecycleCommands(t *testing.T) {
+	t.Parallel()
+	var output bytes.Buffer
+	if err := run([]string{"help"}, strings.NewReader(""), &output, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	for _, command := range []string{"start", "stop", "upgrade", "tui"} {
+		if !strings.Contains(output.String(), command) {
+			t.Errorf("help output does not mention %q", command)
+		}
+	}
+}
+
+func TestSameVersionIgnoresVPrefix(t *testing.T) {
+	t.Parallel()
+	if !sameVersion("v1.2.3", "1.2.3") {
+		t.Fatal("sameVersion rejected equivalent release versions")
+	}
+	if sameVersion("dev", "v1.2.3") {
+		t.Fatal("sameVersion accepted different versions")
 	}
 }

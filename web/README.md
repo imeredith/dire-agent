@@ -8,7 +8,7 @@ Start the daemon from the repository root:
 
 ```sh
 codex login
-go run ./cmd/dire-agentd
+go run ./cmd/dire-agent daemon
 ```
 
 In another terminal:
@@ -34,20 +34,20 @@ embedded:
 ```sh
 npm --prefix web install
 make production
-./dist/dire-agentd
+./dist/dire-agent start
 ```
 
 The application is then available at `http://127.0.0.1:7331`; the Go server
 owns the HTML/assets, WebSocket APIs, terminals, attachments, and health check
 on one origin. The build stages Vite output under `internal/webui/dist`, embeds
 it behind the `webui` Go build tag, and writes the final binary to
-`dist/dire-agentd`. Both generated directories are ignored by Git.
+`dist/dire-agent`. Both generated directories are ignored by Git.
 
 To serve an ordinary `web/dist` build without embedding it:
 
 ```sh
 npm run build
-go run ../cmd/dire-agentd -web-dir ./dist
+go run ../cmd/dire-agent daemon -web-dir ./dist
 ```
 
 Deep links use an `index.html` SPA fallback. Files below `/assets/` are treated
@@ -159,7 +159,8 @@ npm run smoke:daemon
 
 ## Deployment boundary
 
-The daemon currently has no transport authentication. A public HTTPS site also
-cannot safely connect to a local insecure `ws://` endpoint. Keep this client
-local, or put the Go-hosted UI and daemon behind the same authenticated TLS
-reverse proxy. Do not expose `dire-agentd` directly to an untrusted network.
+The daemon's WebSocket and content APIs currently have no transport
+authentication. A public HTTPS site also cannot safely connect to a local
+insecure `ws://` endpoint. Keep this client local, or put the Go-hosted UI and
+daemon behind the same authenticated TLS reverse proxy. Do not expose the Dire
+Agent daemon directly to an untrusted network.

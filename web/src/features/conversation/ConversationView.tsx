@@ -146,7 +146,7 @@ export function ConversationView(props: ConversationViewProps) {
           <p>
             {online
               ? "Use a standalone chat for ideas, or create a folder-scoped project when the agent needs tools."
-              : "Start dire-agentd and this page will reconnect automatically."}
+              : "Run dire-agent start and this page will reconnect automatically."}
           </p>
           {online && (
             <div className="empty-actions">

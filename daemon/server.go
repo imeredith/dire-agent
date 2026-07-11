@@ -3,6 +3,8 @@ package daemon
 import (
 	"bytes"
 	"context"
+	"crypto/subtle"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
@@ -19,6 +21,8 @@ import (
 	"github.com/coder/websocket/wsjson"
 
 	"github.com/imeredith/dire-agent/configuration"
+	"github.com/imeredith/dire-agent/internal/buildinfo"
+	"github.com/imeredith/dire-agent/internal/lifecycle"
 )
 
 type Server struct {
@@ -27,16 +31,18 @@ type Server struct {
 	WebUI                   fs.FS
 	ProjectProxyEnabled     bool
 	ProjectProxyBlockedPort int
+	Health                  lifecycle.Health
+	ControlToken            string
+	Shutdown                func()
 	projectProxyModes       sync.Map
 }
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", func(writer http.ResponseWriter, _ *http.Request) {
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusOK)
-		_, _ = writer.Write([]byte(`{"status":"ok"}`))
-	})
+	mux.HandleFunc("/healthz", s.handleHealth)
+	if s.ControlToken != "" && s.Shutdown != nil {
+		mux.HandleFunc("/control/shutdown", s.handleShutdown)
+	}
 	mux.HandleFunc("/ws", s.handleWebSocket)
 	mux.HandleFunc("/attachments/", s.handleAttachment)
 	mux.HandleFunc("/terminal", s.handleTerminal)
@@ -48,6 +54,49 @@ func (s *Server) Handler() http.Handler {
 		mux.HandleFunc("/", s.handleWebUI)
 	}
 	return mux
+}
+
+func (s *Server) handleHealth(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodGet && request.Method != http.MethodHead {
+		writer.Header().Set("Allow", "GET, HEAD")
+		http.Error(writer, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	health := s.Health
+	if health.Service == "" {
+		health.Service = lifecycle.ServiceName
+	}
+	if health.Status == "" {
+		health.Status = "ok"
+	}
+	if health.Version == "" {
+		health.Version = buildinfo.Version
+	}
+	if health.PID <= 0 {
+		health.PID = os.Getpid()
+	}
+	writer.Header().Set("Content-Type", "application/json")
+	writer.Header().Set("Cache-Control", "no-store")
+	if err := json.NewEncoder(writer).Encode(health); err != nil {
+		return
+	}
+}
+
+func (s *Server) handleShutdown(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodPost {
+		writer.Header().Set("Allow", "POST")
+		http.Error(writer, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	provided := strings.TrimSpace(strings.TrimPrefix(request.Header.Get("Authorization"), "Bearer "))
+	if provided == request.Header.Get("Authorization") || subtle.ConstantTimeCompare([]byte(provided), []byte(s.ControlToken)) != 1 {
+		writer.Header().Set("WWW-Authenticate", "Bearer")
+		http.Error(writer, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	writer.Header().Set("Cache-Control", "no-store")
+	writer.WriteHeader(http.StatusAccepted)
+	go s.Shutdown()
 }
 
 func (s *Server) handleWebUI(writer http.ResponseWriter, request *http.Request) {

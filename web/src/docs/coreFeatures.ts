@@ -7,7 +7,7 @@ export const coreFeatures: FeatureDoc[] = [
     group: "Core",
     summary: "Connect the browser to the loopback WebSocket daemon, validate endpoint errors, and reconnect safely.",
     prerequisites: [
-      "Run `go run ./cmd/dire-agentd` from the repository root.",
+      "Run `go run ./cmd/dire-agent daemon` from the repository root.",
       "Run `npm run dev` from `web` and open the printed local URL.",
     ],
     steps: [

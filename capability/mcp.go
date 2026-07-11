@@ -188,6 +188,9 @@ func recursiveMCP(server configuration.MCPServer) bool {
 		return false
 	}
 	name := strings.ToLower(filepath.Base(strings.TrimSpace(server.Command)))
+	if (name == "dire-agent" || name == "dire-agent.exe") && len(server.Args) > 0 && strings.EqualFold(strings.TrimSpace(server.Args[0]), "mcp") {
+		return true
+	}
 	return name == "dire-agent-mcp" || name == "dire-agent-mcp.exe" ||
 		name == "goagent-mcp" || name == "goagent-mcp.exe"
 }
