@@ -40,24 +40,65 @@ jobs:
           npm ci --prefix web
           npm --prefix web run build:embedded
 
-      - name: Build Linux preview binary
+      - name: Build Linux UI preview binary
         env:
           CGO_ENABLED: "0"
           GOOS: linux
           GOARCH: amd64
         run: |
-          mkdir -p dist
-          go build -tags webui -o dist/app ./cmd/dire-agent
+          mkdir -p .preview-server/static dist
+          cp -R internal/webui/dist/. .preview-server/static/
+          cat > .preview-server/main.go <<'EOF'
+          package main
+
+          import (
+            "embed"
+            "io/fs"
+            "net/http"
+            "os"
+            "path"
+            "strings"
+          )
+
+          //go:embed static
+          var content embed.FS
+
+          func main() {
+            assets, err := fs.Sub(content, "static")
+            if err != nil {
+              panic(err)
+            }
+            files := http.FileServer(http.FS(assets))
+            http.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
+              w.Header().Set("Content-Type", "application/json")
+              _, _ = w.Write([]byte(`{"status":"ok"}`))
+            })
+            http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+              requested := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
+              if requested != "." {
+                if file, err := assets.Open(requested); err == nil {
+                  _ = file.Close()
+                  files.ServeHTTP(w, r)
+                  return
+                }
+              }
+              r.URL.Path = "/"
+              files.ServeHTTP(w, r)
+            })
+            port := os.Getenv("PORT")
+            if port == "" {
+              port = "8080"
+            }
+            if err := http.ListenAndServe("0.0.0.0:"+port, nil); err != nil {
+              panic(err)
+            }
+          }
+          EOF
+          go build -o dist/app ./.preview-server
           cat > dist/preview.json <<EOF
           {
             "name": "dire-agent-pr-${{ github.event.pull_request.number }}",
-            "port": 8080,
-            "args": ["daemon", "-addr", "0.0.0.0:8080", "-allow-remote", "-project-proxy=false"],
-            "env": {
-              "HOME": "/tmp",
-              "XDG_CONFIG_HOME": "/tmp/.config",
-              "XDG_DATA_HOME": "/tmp/.local/share"
-            }
+            "port": 8080
           }
           EOF
 
