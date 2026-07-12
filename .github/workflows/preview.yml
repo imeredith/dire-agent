@@ -137,6 +137,7 @@ jobs:
           endpoint: http://127.0.0.1:18081
           source: dist/app
           manifest: dist/preview.json
+          token: ${{ secrets.PREVIEW_DEPLOYMENT_TOKEN }}
           cli-version: v0.1.2
           allow-insecure-http: "true"
 
