@@ -52,7 +52,12 @@ jobs:
           {
             "name": "dire-agent-pr-${{ github.event.pull_request.number }}",
             "port": 8080,
-            "args": ["daemon", "-addr", "0.0.0.0:8080", "-allow-remote", "-project-proxy=false"]
+            "args": ["daemon", "-addr", "0.0.0.0:8080", "-allow-remote", "-project-proxy=false"],
+            "env": {
+              "HOME": "/tmp",
+              "XDG_CONFIG_HOME": "/tmp/.config",
+              "XDG_DATA_HOME": "/tmp/.local/share"
+            }
           }
           EOF
 
