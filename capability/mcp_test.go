@@ -56,6 +56,54 @@ func TestMCPSourceConnectsCachesAndFiltersTools(t *testing.T) {
 	}
 }
 
+func TestMCPSourceAppliesConversationEnablementOverride(t *testing.T) {
+	var connects atomic.Int32
+	source := NewMCPSource(MCPSourceConfig{Options: mcpclient.Options{
+		TransportFactory: mcpclient.TransportFactoryFunc(func(context.Context, mcpclient.ServerConfig) (mcp.Transport, error) {
+			return nil, nil
+		}),
+		Connector: mcpclient.ConnectorFunc(func(context.Context, mcp.Transport, mcpclient.ConnectOptions) (mcpclient.Session, error) {
+			connects.Add(1)
+			return &fakeMCPSession{}, nil
+		}),
+	}})
+	defer source.Close()
+	settings := configuration.DefaultConfig(t.TempDir()).Global
+	settings.Tools.Sandbox = configuration.SandboxOff
+	settings.MCP.Servers["docs"] = configuration.MCPServer{
+		Transport: configuration.MCPStdio, Command: "/usr/bin/docs-mcp", Enabled: true,
+		Approval: configuration.ApprovalNever,
+	}
+
+	enabledScope := Scope{ConversationID: "project_1", Kind: "project", CWD: t.TempDir()}
+	enabled, err := source.Resolve(context.Background(), enabledScope, settings)
+	if err != nil || enabled.Tools["mcp__docs__lookup"] == nil {
+		t.Fatalf("inherited enabled server: tools=%v err=%v", enabled.Tools, err)
+	}
+	disabledScope := enabledScope
+	disabledScope.MCPServerOverrides = map[string]bool{"docs": false}
+	disabled, err := source.Resolve(context.Background(), disabledScope, settings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if disabled.Tools["mcp__docs__lookup"] != nil || !hasDescriptor(disabled.Descriptors, "mcp:docs", "disabled") {
+		t.Fatalf("disabled override fragment = %+v", disabled)
+	}
+	if connects.Load() != 1 {
+		t.Fatalf("disabled override connected to server; connects=%d", connects.Load())
+	}
+
+	reenabledScope := enabledScope
+	reenabledScope.MCPServerOverrides = map[string]bool{"docs": true}
+	reenabled, err := source.Resolve(context.Background(), reenabledScope, settings)
+	if err != nil || reenabled.Tools["mcp__docs__lookup"] == nil {
+		t.Fatalf("explicit enabled server: tools=%v err=%v", reenabled.Tools, err)
+	}
+	if connects.Load() != 2 {
+		t.Fatalf("re-enabled override connections = %d, want 2", connects.Load())
+	}
+}
+
 func TestMCPSourceRequiresApprovalAndRejectsRecursiveBridge(t *testing.T) {
 	source := NewMCPSource(MCPSourceConfig{})
 	defer source.Close()
@@ -70,6 +118,15 @@ func TestMCPSourceRequiresApprovalAndRejectsRecursiveBridge(t *testing.T) {
 	}
 	if len(fragment.Tools) != 0 || !hasDescriptorStatus(fragment.Descriptors, "recursive_denied") {
 		t.Fatalf("fragment = %+v", fragment)
+	}
+	disabled, err := source.Resolve(context.Background(), Scope{
+		ConversationID: "chat_2", Kind: "chat", MCPServerOverrides: map[string]bool{"self": false},
+	}, settings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasDescriptor(disabled.Descriptors, "mcp:self", "disabled") || hasDescriptorStatus(disabled.Descriptors, "recursive_denied") {
+		t.Fatalf("disabled recursive server fragment = %+v", disabled)
 	}
 }
 
@@ -106,6 +163,15 @@ func TestRecursiveMCPRejectsCurrentAndLegacyBridgeNames(t *testing.T) {
 func hasDescriptorStatus(values []Descriptor, status string) bool {
 	for _, value := range values {
 		if value.Status == status {
+			return true
+		}
+	}
+	return false
+}
+
+func hasDescriptor(values []Descriptor, name, status string) bool {
+	for _, value := range values {
+		if value.Name == name && value.Status == status {
 			return true
 		}
 	}

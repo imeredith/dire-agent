@@ -68,7 +68,7 @@ describe("App settings", () => {
     await openSettings(user);
     const skills = screen.getByRole("heading", { name: "Agent skills" }).closest("section")!;
     await user.selectOptions(within(skills).getByLabelText("Trust policy"), "trusted");
-    const mcp = screen.getByRole("heading", { name: "MCP servers" }).closest("section")!;
+    const mcp = screen.getByRole("heading", { name: "Global MCP registry" }).closest("section")!;
     await user.type(within(mcp).getByLabelText("Server name"), "docs");
     await user.click(within(mcp).getByRole("button", { name: "Add server" }));
     expect(within(mcp).getByText("docs")).toBeInTheDocument();

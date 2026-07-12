@@ -27,6 +27,8 @@ type Command struct {
 	Level             string                `json:"level,omitempty"`
 	Mode              string                `json:"mode,omitempty"`
 	Tools             []string              `json:"tools,omitempty"`
+	MCPServer         string                `json:"mcp_server,omitempty"`
+	Enabled           *bool                 `json:"enabled,omitempty"`
 	AgentID           string                `json:"agent_id,omitempty"`
 	ParentID          string                `json:"parent_id,omitempty"`
 	AgentName         string                `json:"agent_name,omitempty"`

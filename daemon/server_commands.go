@@ -31,10 +31,12 @@ func (c *serverClient) handle(command Command) Response {
 	switch command.Type {
 	case "create_chat":
 		chatOptions := command.ChatOptions
-		if chatOptions == (CreateChatOptions{}) {
+		if chatOptions.Name == "" && chatOptions.Model == "" && chatOptions.Instructions == "" &&
+			chatOptions.ThinkingLevel == "" && len(chatOptions.MCPServerOverrides) == 0 {
 			chatOptions = CreateChatOptions{
 				Name: command.Options.Name, Model: command.Options.Model,
 				Instructions: command.Options.Instructions, ThinkingLevel: command.Options.ThinkingLevel,
+				MCPServerOverrides: cloneBoolMap(command.Options.MCPServerOverrides),
 			}
 		}
 		var chat threadstore.Chat
@@ -118,6 +120,10 @@ func (c *serverClient) handle(command Command) Response {
 		response.Data, err = c.manager.UpdateSettings(c.ctx, resourceID, SettingsUpdate{FollowUpMode: &command.Mode})
 	case "set_tools":
 		response.Data, err = c.manager.UpdateSettings(c.ctx, resourceID, SettingsUpdate{Tools: &command.Tools})
+	case "set_mcp_server_enabled":
+		response.Data, err = c.manager.UpdateSettings(c.ctx, resourceID, SettingsUpdate{MCPServer: &MCPServerUpdate{
+			Name: command.MCPServer, Enabled: command.Enabled,
+		}})
 	case "get_available_tools":
 		response.Data = map[string]any{"tools": c.manager.AvailableTools()}
 	case "get_capabilities":

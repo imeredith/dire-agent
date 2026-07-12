@@ -326,6 +326,13 @@ export function useConversationSession(options: SessionOptions): ConversationSes
         ? normalizeRuntimeState({ ...current, conversation: canonical }, canonical)
         : current);
       onUpsert(canonical);
+      if (command.type === "set_mcp_server_enabled") {
+        void client.getCapabilities(canonical).then((nextCapabilities) => {
+          if (selectedRef.current?.id !== resource.id) return;
+          capabilitiesRef.current = nextCapabilities;
+          setCapabilities(nextCapabilities);
+        }).catch(() => undefined);
+      }
       if (notice) onNotice(notice);
       return canonical;
     } catch (error) {

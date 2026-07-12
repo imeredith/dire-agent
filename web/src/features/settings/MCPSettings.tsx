@@ -37,9 +37,9 @@ export function MCPSettings(props: { value: MCPSettingsValue; onChange: (value: 
   return (
     <SettingsSection
       id="mcp"
-      eyebrow="MODEL CONTEXT PROTOCOL"
-      title="MCP servers"
-      description="Connect maintained stdio or Streamable HTTP servers. Tools are namespaced per server."
+      eyebrow="GLOBAL MODEL CONTEXT PROTOCOL"
+      title="Global MCP registry"
+      description="Define stdio or Streamable HTTP servers once for the daemon. Projects and chats inherit each server's default and can override it in Conversation details."
     >
       <div className="inline-create">
         <label><span>Server name</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder="filesystem" /></label>
@@ -50,7 +50,7 @@ export function MCPSettings(props: { value: MCPSettingsValue; onChange: (value: 
           <MCPServerCard key={serverName} name={serverName} value={server} onChange={(value) => update(serverName, value)} onRemove={() => remove(serverName)} />
         ))}
         {!Object.keys(servers).length && (
-          <div className="integration-empty"><Server size={20} /><strong>No MCP servers configured</strong><span>Add a trusted server to expose its tools to the agent.</span></div>
+          <div className="integration-empty"><Server size={20} /><strong>No MCP servers in the global registry</strong><span>Add a trusted server here, then enable or disable it per conversation as needed.</span></div>
         )}
       </div>
     </SettingsSection>
@@ -64,7 +64,7 @@ function MCPServerCard(props: { name: string; value: MCPServerConfig; onChange: 
     <article className="integration-card">
       <header>
         <div className="integration-icon"><Server size={16} /></div>
-        <div><strong>{props.name}</strong><span>{value.transport} · {value.enabled ? "enabled" : "disabled"}</span></div>
+        <div><strong>{props.name}</strong><span>{value.transport} · default {value.enabled ? "on" : "off"}</span></div>
         <button className="icon-button danger-icon" onClick={props.onRemove} aria-label={`Remove ${props.name}`}><Trash2 size={14} /></button>
       </header>
       <div className="settings-grid three">
@@ -79,7 +79,7 @@ function MCPServerCard(props: { name: string; value: MCPServerConfig; onChange: 
             <option value="never">Never</option><option value="on-request">On request</option><option value="always">Always</option>
           </select>
         </Field>
-        <div className="settings-field toggle-field"><Toggle label="Enabled" checked={value.enabled} onChange={(enabled) => set("enabled", enabled)} /></div>
+        <div className="settings-field toggle-field"><Toggle label="Enabled by default" checked={value.enabled} onChange={(enabled) => set("enabled", enabled)} /></div>
         {value.transport === "stdio" ? (
           <>
             <Field label="Command" wide><input value={value.command || ""} onChange={(event) => set("command", event.target.value)} placeholder="npx" /></Field>

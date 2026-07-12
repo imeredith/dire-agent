@@ -30,6 +30,11 @@ func (m *Manager) CreateThread(ctx context.Context, options CreateThreadOptions)
 	if err != nil {
 		return threadstore.Thread{}, err
 	}
+	if m.config.Settings != nil {
+		if err := validateMCPServerOverrides(options.MCPServerOverrides, settings); err != nil {
+			return threadstore.Thread{}, err
+		}
+	}
 	if options.Model == "" {
 		options.Model = firstNonEmpty(settings.Model.ID, m.config.DefaultModel)
 	}
@@ -61,12 +66,13 @@ func (m *Manager) CreateThread(ctx context.Context, options CreateThreadOptions)
 	thread := threadstore.Thread{
 		ID: id, Kind: threadstore.KindProject, Name: options.Name, Category: category,
 		Model: options.Model, CWD: options.CWD,
-		AdditionalFolders: append([]string(nil), options.AdditionalFolders...),
-		Instructions:      options.Instructions,
-		ThinkingLevel:     options.ThinkingLevel,
-		SteeringMode:      firstNonEmpty(string(settings.Queues.SteeringMode), "one-at-a-time"),
-		FollowUpMode:      firstNonEmpty(string(settings.Queues.FollowUpMode), "one-at-a-time"),
-		Tools:             append([]string(nil), options.Tools...), Status: "idle",
+		AdditionalFolders:  append([]string(nil), options.AdditionalFolders...),
+		Instructions:       options.Instructions,
+		ThinkingLevel:      options.ThinkingLevel,
+		SteeringMode:       firstNonEmpty(string(settings.Queues.SteeringMode), "one-at-a-time"),
+		FollowUpMode:       firstNonEmpty(string(settings.Queues.FollowUpMode), "one-at-a-time"),
+		Tools:              append([]string(nil), options.Tools...),
+		MCPServerOverrides: cloneBoolMap(options.MCPServerOverrides), Status: "idle",
 	}
 	if model, ok := m.modelInfo(thread.Model); ok {
 		thread.Usage.ContextWindow = model.ContextWindow
@@ -134,6 +140,11 @@ func (m *Manager) CreateChat(ctx context.Context, options CreateChatOptions) (th
 	if err != nil {
 		return threadstore.Chat{}, err
 	}
+	if m.config.Settings != nil {
+		if err := validateMCPServerOverrides(options.MCPServerOverrides, settings); err != nil {
+			return threadstore.Chat{}, err
+		}
+	}
 	if options.Model == "" {
 		options.Model = firstNonEmpty(settings.StandaloneChat.Model, settings.Model.ID, m.config.DefaultModel)
 	}
@@ -149,6 +160,7 @@ func (m *Manager) CreateChat(ctx context.Context, options CreateChatOptions) (th
 		SteeringMode: firstNonEmpty(string(settings.Queues.SteeringMode), "one-at-a-time"),
 		FollowUpMode: firstNonEmpty(string(settings.Queues.FollowUpMode), "one-at-a-time"),
 		Tools:        []string{}, Status: "idle",
+		MCPServerOverrides: cloneBoolMap(options.MCPServerOverrides),
 	}
 	if model, ok := m.modelInfo(chat.Model); ok {
 		chat.Usage.ContextWindow = model.ContextWindow
@@ -237,17 +249,21 @@ func (m *Manager) State(ctx context.Context, id string) (RuntimeState, error) {
 	}
 	runtime.mu.Lock()
 	defer runtime.mu.Unlock()
-	kind := runtime.thread.ResourceKind()
+	resource := runtime.thread
+	resource.Tools = append([]string(nil), resource.Tools...)
+	resource.AdditionalFolders = append([]string(nil), resource.AdditionalFolders...)
+	resource.MCPServerOverrides = cloneBoolMap(resource.MCPServerOverrides)
+	kind := resource.ResourceKind()
 	var project threadstore.Project
 	var chat threadstore.Chat
 	if kind == threadstore.KindChat {
-		chat = runtime.thread
+		chat = resource
 	} else {
-		project = runtime.thread
+		project = resource
 	}
 	return RuntimeState{
-		Kind: kind, Conversation: runtime.thread, Project: project, Chat: chat,
-		Thread: runtime.thread, Usage: runtime.thread.Usage,
+		Kind: kind, Conversation: resource, Project: project, Chat: chat,
+		Thread: resource, Usage: resource.Usage,
 		Capabilities:     append([]capability.Descriptor(nil), runtime.capabilities...),
 		Skills:           append([]skills.Skill(nil), runtime.skills...),
 		SkillDiagnostics: append([]skills.Diagnostic(nil), runtime.skillDiagnostics...),

@@ -237,8 +237,13 @@ func (r *threadRuntime) reopenSessionWithInstructionsLocked(ctx context.Context,
 func (r *threadRuntime) snapshotThread() threadstore.Thread {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	thread := r.thread
+	return cloneThread(r.thread)
+}
+
+func cloneThread(input threadstore.Thread) threadstore.Thread {
+	thread := input
 	thread.Tools = append([]string(nil), thread.Tools...)
 	thread.AdditionalFolders = append([]string(nil), thread.AdditionalFolders...)
+	thread.MCPServerOverrides = cloneBoolMap(thread.MCPServerOverrides)
 	return thread
 }

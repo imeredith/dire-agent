@@ -129,6 +129,32 @@ func TestEffectiveDeepMergeAndCopy(t *testing.T) {
 	}
 }
 
+func TestEffectiveProjectCanToggleGlobalMCPServer(t *testing.T) {
+	config := DefaultConfig(t.TempDir())
+	server := validStdioServer()
+	server.Env = map[string]string{"VISIBLE": "global"}
+	config.Global.MCP.Servers["docs"] = server
+	disabled := false
+	config.Projects["project-a"] = ProjectOverride{
+		Folder: filepath.Join(t.TempDir(), "project"),
+		Settings: SettingsPatch{MCP: &MCPPatch{Servers: map[string]MCPServerPatch{
+			"docs": {Enabled: &disabled},
+		}}},
+	}
+
+	inherited, found := config.Effective("missing")
+	if found || !inherited.MCP.Servers["docs"].Enabled {
+		t.Fatalf("global MCP default was not inherited: found=%v server=%+v", found, inherited.MCP.Servers["docs"])
+	}
+	effective, found := config.Effective("project-a")
+	if !found || effective.MCP.Servers["docs"].Enabled {
+		t.Fatalf("project MCP override was not applied: found=%v server=%+v", found, effective.MCP.Servers["docs"])
+	}
+	if effective.MCP.Servers["docs"].Command != server.Command || effective.MCP.Servers["docs"].Env["VISIBLE"] != "global" {
+		t.Fatalf("toggle replaced the global server definition: %+v", effective.MCP.Servers["docs"])
+	}
+}
+
 func TestLauncherPatchReplacesAndPreservesExplicitEmptyList(t *testing.T) {
 	config := DefaultConfig(t.TempDir())
 	empty := []ProjectLauncher{}

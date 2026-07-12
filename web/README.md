@@ -121,10 +121,14 @@ turn it off; exposing it from a non-loopback daemon requires the explicit
   advertise true color and use a Tokyo Night–compatible palette.
 - Reconnect automatically, resubscribe, and catch up persisted event sequence
   gaps without retrying potentially duplicated mutations.
-- Manage daemon-wide models, sandbox policy, queues, skills, MCP servers,
+- Manage daemon-wide models, sandbox policy, queues, skills, the global MCP registry,
   extensions, subagent profiles, workspace launchers, standalone defaults, and
   desktop sync from the full-page Settings view. Configuration saves are
   validated and revisioned; MCP secrets remain redacted in the browser.
+- Override each registered MCP server per project or chat with Inherit, On, or
+  Off from the conversation drawer. Child threads inherit the root project
+  choice and can be explicitly narrowed or re-enabled through the daemon API
+  when their persisted spawn grant permits it.
 - Discover capabilities and skills for the selected conversation.
 - Discover and execute extension-provided commands with free-form arguments;
   command output, errors, and daemon-queued prompts remain visible in the

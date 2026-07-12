@@ -21,14 +21,15 @@ type ModelInfo struct {
 }
 
 type CreateThreadOptions struct {
-	Name              string   `json:"name,omitempty"`
-	Category          string   `json:"category,omitempty"`
-	Model             string   `json:"model,omitempty"`
-	CWD               string   `json:"cwd,omitempty"`
-	AdditionalFolders []string `json:"additional_folders,omitempty"`
-	Instructions      string   `json:"instructions,omitempty"`
-	ThinkingLevel     string   `json:"thinking_level,omitempty"`
-	Tools             []string `json:"tools,omitempty"`
+	Name               string          `json:"name,omitempty"`
+	Category           string          `json:"category,omitempty"`
+	Model              string          `json:"model,omitempty"`
+	CWD                string          `json:"cwd,omitempty"`
+	AdditionalFolders  []string        `json:"additional_folders,omitempty"`
+	Instructions       string          `json:"instructions,omitempty"`
+	ThinkingLevel      string          `json:"thinking_level,omitempty"`
+	Tools              []string        `json:"tools,omitempty"`
+	MCPServerOverrides map[string]bool `json:"mcp_server_overrides,omitempty"`
 }
 
 // CreateProjectOptions is the project-oriented public name. The alias keeps
@@ -36,10 +37,11 @@ type CreateThreadOptions struct {
 type CreateProjectOptions = CreateThreadOptions
 
 type CreateChatOptions struct {
-	Name          string `json:"name,omitempty"`
-	Model         string `json:"model,omitempty"`
-	Instructions  string `json:"instructions,omitempty"`
-	ThinkingLevel string `json:"thinking_level,omitempty"`
+	Name               string          `json:"name,omitempty"`
+	Model              string          `json:"model,omitempty"`
+	Instructions       string          `json:"instructions,omitempty"`
+	ThinkingLevel      string          `json:"thinking_level,omitempty"`
+	MCPServerOverrides map[string]bool `json:"mcp_server_overrides,omitempty"`
 }
 
 // ImageAttachment is the WebSocket and persistence representation of a pasted
@@ -89,6 +91,14 @@ type SettingsUpdate struct {
 	SteeringMode      *string
 	FollowUpMode      *string
 	Tools             *[]string
+	MCPServer         *MCPServerUpdate
+}
+
+// MCPServerUpdate changes one conversation-local server choice. Enabled=nil
+// removes the choice so the conversation inherits its global/project value.
+type MCPServerUpdate struct {
+	Name    string
+	Enabled *bool
 }
 
 type CapabilityState struct {

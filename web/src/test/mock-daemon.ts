@@ -45,6 +45,14 @@ export const chatFixture: Conversation = {
   tools: [],
 };
 
+function capabilityFixture(): CapabilityState {
+  return {
+    capabilities: [{ name: "read", source: "builtin", enabled: true, status: "ready" }],
+    skills: [{ name: "review", description: "Review", path: "/skills/review/SKILL.md", directory: "/skills/review", root: "/skills", scope: "global", enabled: true }],
+    skill_diagnostics: [],
+  };
+}
+
 export function configFixture(): DaemonConfig {
   return {
     version: 1,
@@ -109,6 +117,7 @@ export const mockState = {
   capabilityCommands: [] as CapabilityCommandInfo[],
   capabilityCommandResult: { output: "" } as CapabilityCommandResult,
   capabilityCommandError: "",
+  capabilities: capabilityFixture(),
 };
 
 export function resetMockDaemon() {
@@ -125,6 +134,7 @@ export function resetMockDaemon() {
   mockState.capabilityCommands = [];
   mockState.capabilityCommandResult = { output: "" };
   mockState.capabilityCommandError = "";
+  mockState.capabilities = capabilityFixture();
 }
 
 export class MockDaemonClient {
@@ -212,12 +222,22 @@ export class MockDaemonClient {
     mockState.projects = mockState.projects.filter((item) => item.id !== conversation.id);
     mockState.chats = mockState.chats.filter((item) => item.id !== conversation.id);
   }
-  async getCapabilities(): Promise<CapabilityState> {
-    return {
-      capabilities: [{ name: "read", source: "builtin", enabled: true, status: "ready" }],
-      skills: [{ name: "review", description: "Review", path: "/skills/review/SKILL.md", directory: "/skills/review", root: "/skills", scope: "global", enabled: true }],
-      skill_diagnostics: [],
-    };
+  async getCapabilities(conversation: Conversation): Promise<CapabilityState> {
+    const overrides = this.find(conversation.id).mcp_server_overrides;
+    return structuredClone({
+      ...mockState.capabilities,
+      capabilities: mockState.capabilities.capabilities.map((item) => {
+        if (item.source !== "mcp" || !item.name.startsWith("mcp:")) return item;
+        const serverName = item.name.slice("mcp:".length);
+        if (!overrides || !Object.prototype.hasOwnProperty.call(overrides, serverName)) return item;
+        const enabled = overrides[serverName];
+        return {
+          ...item,
+          enabled,
+          status: enabled ? (item.status === "disabled" ? "ready" : item.status || "ready") : "disabled",
+        };
+      }),
+    });
   }
   async listCapabilityCommands(conversation: Conversation) {
     this.record({ type: "list_capability_commands", ...conversationScope(conversation) });
@@ -278,7 +298,7 @@ export class MockDaemonClient {
   async request<T>(command: Command): Promise<T> {
     this.record(command);
     const id = command.conversation_id || command.chat_id || command.project_id || command.thread_id || "";
-    if (["set_model", "set_thinking_level", "set_conversation_name", "set_project_category", "set_project_sandbox_folders", "set_tools", "set_steering_mode", "set_follow_up_mode"].includes(command.type)) {
+    if (["set_model", "set_thinking_level", "set_conversation_name", "set_project_category", "set_project_sandbox_folders", "set_tools", "set_steering_mode", "set_follow_up_mode", "set_mcp_server_enabled"].includes(command.type)) {
       const current = this.find(id);
       const updated: Conversation = {
         ...current,
@@ -291,6 +311,13 @@ export class MockDaemonClient {
         ...(command.type === "set_steering_mode" ? { steering_mode: command.mode as Conversation["steering_mode"] } : {}),
         ...(command.type === "set_follow_up_mode" ? { follow_up_mode: command.mode as Conversation["follow_up_mode"] } : {}),
       };
+      if (command.type === "set_mcp_server_enabled" && command.mcp_server) {
+        const overrides = { ...current.mcp_server_overrides };
+        if (command.enabled === null) delete overrides[command.mcp_server];
+        else if (command.enabled !== undefined) overrides[command.mcp_server] = command.enabled;
+        if (Object.keys(overrides).length) updated.mcp_server_overrides = overrides;
+        else delete updated.mcp_server_overrides;
+      }
       this.replace(updated);
       return updated as T;
     }

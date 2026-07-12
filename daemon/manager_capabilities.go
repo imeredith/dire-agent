@@ -26,13 +26,18 @@ func (m *Manager) resolveCapabilities(ctx context.Context, resource threadstore.
 		}
 		snapshot = capability.Snapshot{Tools: builtins, Commands: make(map[string]capability.Command)}
 	} else {
+		mcpOverrides, overrideErr := m.effectiveMCPServerOverrides(ctx, resource)
+		if overrideErr != nil {
+			return capability.Snapshot{}, overrideErr
+		}
 		snapshot, err = m.config.Capabilities.Resolve(ctx, capability.Scope{
-			ConversationID:    resource.ID,
-			SettingsID:        configScopeID(resource),
-			Kind:              resource.ResourceKind(),
-			CWD:               resource.CWD,
-			AdditionalFolders: append([]string(nil), resource.AdditionalFolders...),
-			Builtins:          append([]string(nil), resource.Tools...),
+			ConversationID:     resource.ID,
+			SettingsID:         configScopeID(resource),
+			Kind:               resource.ResourceKind(),
+			CWD:                resource.CWD,
+			AdditionalFolders:  append([]string(nil), resource.AdditionalFolders...),
+			Builtins:           append([]string(nil), resource.Tools...),
+			MCPServerOverrides: mcpOverrides,
 		})
 		if err != nil {
 			return capability.Snapshot{}, err
@@ -95,6 +100,31 @@ func (m *Manager) resolveCapabilities(ctx context.Context, resource threadstore.
 	return snapshot, nil
 }
 
+// effectiveMCPServerOverrides layers a child thread's choices over its root
+// project's choices. This keeps project toggles live for existing children,
+// while still allowing a child thread to make an explicit local choice.
+func (m *Manager) effectiveMCPServerOverrides(ctx context.Context, resource threadstore.Thread) (map[string]bool, error) {
+	if !resource.IsSubagent() {
+		return cloneBoolMap(resource.MCPServerOverrides), nil
+	}
+	rootID := teamRootID(resource)
+	if rootID == resource.ID {
+		return nil, errors.New("daemon: subagent MCP scope points to itself")
+	}
+	root, err := m.threadMetadata(ctx, rootID)
+	if err != nil {
+		return nil, err
+	}
+	overrides := cloneBoolMap(root.MCPServerOverrides)
+	if overrides == nil && len(resource.MCPServerOverrides) != 0 {
+		overrides = make(map[string]bool, len(resource.MCPServerOverrides))
+	}
+	for name, enabled := range resource.MCPServerOverrides {
+		overrides[name] = enabled
+	}
+	return overrides, nil
+}
+
 func configScopeID(resource threadstore.Thread) string {
 	if resource.RootID != "" {
 		return resource.RootID
@@ -103,15 +133,23 @@ func configScopeID(resource threadstore.Thread) string {
 }
 
 func (m *Manager) refreshCapabilities(ctx context.Context, runtime *threadRuntime) error {
-	resource := runtime.snapshotThread()
+	runtime.mu.Lock()
+	defer runtime.mu.Unlock()
+	return m.refreshCapabilitiesLocked(ctx, runtime)
+}
+
+// refreshCapabilitiesLocked resolves and installs one immutable snapshot while
+// holding the conversation lock. Keeping resolution inside this boundary
+// prevents an older, slower refresh from overwriting a newly persisted MCP
+// disable and prevents a run from starting with a half-refreshed tool set.
+func (m *Manager) refreshCapabilitiesLocked(ctx context.Context, runtime *threadRuntime) error {
+	if runtime.running {
+		return nil
+	}
+	resource := cloneThread(runtime.thread)
 	snapshot, err := m.resolveCapabilities(ctx, resource)
 	if err != nil {
 		return err
-	}
-	runtime.mu.Lock()
-	defer runtime.mu.Unlock()
-	if runtime.running {
-		return nil
 	}
 	if snapshot.Instructions != runtime.capabilityInstructions {
 		if err := runtime.reopenSessionWithInstructionsLocked(ctx, snapshot.Instructions); err != nil {
@@ -127,6 +165,32 @@ func (m *Manager) refreshCapabilities(ctx context.Context, runtime *threadRuntim
 	runtime.hooks = snapshot.Hooks
 	runtime.commands = snapshot.Commands
 	return nil
+}
+
+// refreshMCPDependents waits for every loaded child snapshot after a root
+// project/chat toggle. A child that already started keeps its immutable run
+// snapshot; an idle child is refreshed before the root update returns.
+func (m *Manager) refreshMCPDependents(ctx context.Context, rootID string) {
+	m.mu.Lock()
+	all := make([]*threadRuntime, 0, len(m.runtimes))
+	for _, runtime := range m.runtimes {
+		all = append(all, runtime)
+	}
+	m.mu.Unlock()
+	var runtimes []*threadRuntime
+	for _, runtime := range all {
+		runtime.mu.Lock()
+		matches := runtime.thread.RootID == rootID
+		runtime.mu.Unlock()
+		if matches {
+			runtimes = append(runtimes, runtime)
+		}
+	}
+	for _, runtime := range runtimes {
+		if err := m.refreshCapabilities(ctx, runtime); err == nil {
+			m.emit(ctx, runtime, "capabilities_updated", map[string]bool{"refreshed": true})
+		}
+	}
 }
 
 func (m *Manager) toolsFor(resource threadstore.Thread) (map[string]agentloop.Tool, error) {
@@ -241,4 +305,15 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func cloneBoolMap(input map[string]bool) map[string]bool {
+	if input == nil {
+		return nil
+	}
+	result := make(map[string]bool, len(input))
+	for key, value := range input {
+		result[key] = value
+	}
+	return result
 }

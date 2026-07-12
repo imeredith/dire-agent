@@ -8,29 +8,33 @@ import (
 )
 
 type Thread struct {
-	ID                string      `json:"id"`
-	Kind              string      `json:"kind,omitempty"`
-	ParentID          string      `json:"parent_id,omitempty"`
-	RootID            string      `json:"root_id,omitempty"`
-	AgentName         string      `json:"agent_name,omitempty"`
-	AgentRole         string      `json:"agent_role,omitempty"`
-	AgentProfile      string      `json:"agent_profile,omitempty"`
-	AgentTools        []string    `json:"agent_tools,omitempty"`
-	Depth             int         `json:"depth,omitempty"`
-	Name              string      `json:"name,omitempty"`
-	Category          string      `json:"category,omitempty"`
-	Model             string      `json:"model"`
-	CWD               string      `json:"cwd"`
-	AdditionalFolders []string    `json:"additional_folders,omitempty"`
-	Instructions      string      `json:"instructions,omitempty"`
-	ThinkingLevel     string      `json:"thinking_level"`
-	SteeringMode      string      `json:"steering_mode"`
-	FollowUpMode      string      `json:"follow_up_mode"`
-	Tools             []string    `json:"tools"`
-	Usage             agent.Usage `json:"usage"`
-	Status            string      `json:"status"`
-	CreatedAt         time.Time   `json:"created_at"`
-	UpdatedAt         time.Time   `json:"updated_at"`
+	ID                string   `json:"id"`
+	Kind              string   `json:"kind,omitempty"`
+	ParentID          string   `json:"parent_id,omitempty"`
+	RootID            string   `json:"root_id,omitempty"`
+	AgentName         string   `json:"agent_name,omitempty"`
+	AgentRole         string   `json:"agent_role,omitempty"`
+	AgentProfile      string   `json:"agent_profile,omitempty"`
+	AgentTools        []string `json:"agent_tools,omitempty"`
+	Depth             int      `json:"depth,omitempty"`
+	Name              string   `json:"name,omitempty"`
+	Category          string   `json:"category,omitempty"`
+	Model             string   `json:"model"`
+	CWD               string   `json:"cwd"`
+	AdditionalFolders []string `json:"additional_folders,omitempty"`
+	Instructions      string   `json:"instructions,omitempty"`
+	ThinkingLevel     string   `json:"thinking_level"`
+	SteeringMode      string   `json:"steering_mode"`
+	FollowUpMode      string   `json:"follow_up_mode"`
+	Tools             []string `json:"tools"`
+	// MCPServerOverrides records conversation-local enablement choices for
+	// globally configured MCP servers. Missing entries inherit the effective
+	// global/project setting, while explicit false values remain meaningful.
+	MCPServerOverrides map[string]bool `json:"mcp_server_overrides,omitempty"`
+	Usage              agent.Usage     `json:"usage"`
+	Status             string          `json:"status"`
+	CreatedAt          time.Time       `json:"created_at"`
+	UpdatedAt          time.Time       `json:"updated_at"`
 }
 
 // Project is the public name for a folder-scoped persistent conversation.

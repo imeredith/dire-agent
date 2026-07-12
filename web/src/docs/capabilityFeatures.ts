@@ -21,11 +21,12 @@ export const capabilityFeatures: FeatureDoc[] = [
     summary: "Connect stdio or Streamable HTTP MCP servers and expose bounded tools, resources, and prompts.",
     prerequisites: ["Have a safe test MCP server command or same-origin HTTP endpoint available."],
     steps: [
-      { action: "Open Settings → MCP servers, add a server ID, choose its transport, and enter the command/URL and arguments.", expected: "A server card is created with editable allowlists, timeout, sandbox, and approval policy." },
-      { action: "Enable it, use approval Never for the trusted fixture, and save.", expected: "The revision increments; secret environment/header values are redacted when configuration is read back." },
-      { action: "Open a conversation’s details and inspect Capabilities.", expected: "Discovered tools use `mcp__SERVER__TOOL`; resource and prompt helpers use `mcpctx__SERVER__…`." },
+      { action: "Open Settings → Global MCP registry, add a server ID, choose its transport, and enter the command/URL and arguments.", expected: "A reusable global server definition is created with allowlist and approval policy controls." },
+      { action: "Set Enabled by default, use approval Never for the trusted fixture, and save.", expected: "The revision increments; secret environment/header values are redacted when configuration is read back." },
+      { action: "Open a conversation’s details and choose Inherit, On, or Off for the server.", expected: "The conversation follows the global default or persists only its local enablement override." },
+      { action: "Inspect Capabilities.", expected: "Discovered tools use `mcp__SERVER__TOOL`; resource and prompt helpers use `mcpctx__SERVER__…`." },
       { action: "Ask the agent to call the fixture tool, then list/read its fixture resource and prompt.", expected: "Tool activity and bounded results appear in the transcript; errors remain attributed to the server." },
-      { action: "Disable the server and save.", expected: "Its capabilities disappear on the next conversation refresh." },
+      { action: "Set the conversation override to Off.", expected: "The server disconnects for that conversation while remaining available to other projects and chats." },
     ],
   },
   {
