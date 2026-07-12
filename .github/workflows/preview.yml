@@ -3,24 +3,36 @@ name: PR Preview
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to preview
+        required: true
+        type: string
+      ref:
+        description: Pull request branch or commit to build
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: dire-agent-preview-${{ github.event.pull_request.number }}
+  group: dire-agent-preview-${{ github.event.pull_request.number || inputs.pr_number }}
   cancel-in-progress: true
 
 jobs:
   deploy:
     # Never execute fork-controlled code on the persistent self-hosted runner.
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, Linux, X64, coolify]
     timeout-minutes: 30
 
     steps:
       - name: Check out pull request
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref || github.event.pull_request.head.sha }}
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -50,7 +62,7 @@ jobs:
           go build -tags webui -o dist/app ./cmd/dire-agent
           cat > dist/preview.json <<EOF
           {
-            "name": "dire-agent-pr-${{ github.event.pull_request.number }}",
+            "name": "dire-agent-pr-${{ github.event.pull_request.number || inputs.pr_number }}",
             "port": 8080,
             "args": ["daemon", "-addr", "0.0.0.0:8080", "-allow-remote", "-project-proxy=false"],
             "codex_auth": true,
