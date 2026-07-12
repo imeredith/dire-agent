@@ -1,5 +1,6 @@
 import {
   AppWindow,
+  CalendarClock,
   FileCode2,
   GitBranch,
   Menu,
@@ -48,6 +49,8 @@ export function TopBar(props: TopBarProps) {
         <button className="icon-button menu-button" onClick={props.onMenu} aria-label="Open navigation"><Menu size={18} /></button>
         {props.view === "settings" ? (
           <div className="topbar-title"><Settings2 size={16} /><span><strong>Settings</strong><small>Daemon-wide configuration</small></span></div>
+        ) : props.view === "schedules" ? (
+          <div className="topbar-title"><CalendarClock size={16} /><span><strong>Scheduled prompts</strong><small>Background and one-off tasks</small></span></div>
         ) : props.terminalAvailable ? (
           <div className="workspace-tabs" role="tablist" aria-label="Project workspace tabs">
             <button

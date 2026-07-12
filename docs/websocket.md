@@ -27,6 +27,7 @@ agent_id, parent_id, agent_name, agent_role, task, profile,
 agent_ids, wake, timeout_ms
 command_name, arguments, attachments
 additional_folders
+schedule_id, schedule
 ```
 
 Only fields used by a command need to be sent. A conversation may be addressed
@@ -128,6 +129,93 @@ sequence closes subscription/reconnect gaps.
 Creating a conversation automatically subscribes that WebSocket connection.
 `prompt`, `steer`, `follow_up`, and `spawn_agent` also subscribe to their target
 when accepted.
+
+## Scheduled prompts
+
+Scheduled prompts are owned by the daemon and remain active when every client
+is disconnected. They can target an existing project, an existing standalone
+chat, or a fresh one-off standalone chat created for each firing.
+
+```text
+list_scheduled_prompts
+create_scheduled_prompt
+update_scheduled_prompt
+delete_scheduled_prompt
+run_scheduled_prompt
+subscribe_scheduled_prompts
+unsubscribe_scheduled_prompts
+```
+
+Create a recurring project prompt with a standard five-field crontab
+expression:
+
+```json
+{
+  "id": "req-schedule",
+  "type": "create_scheduled_prompt",
+  "schedule": {
+    "name": "Weekday review",
+    "prompt": "Review open work and propose today's priorities.",
+    "target_type": "project",
+    "conversation_id": "project_...",
+    "schedule_type": "cron",
+    "cron": "0 9 * * 1-5",
+    "timezone": "Pacific/Auckland",
+    "enabled": true
+  }
+}
+```
+
+Cron fields are `minute hour day-of-month month day-of-week`. Lists, ranges,
+steps, English month/weekday abbreviations, and the `@hourly`, `@daily`,
+`@weekly`, `@monthly`, and `@yearly` aliases are accepted. When both day fields
+are restricted, traditional crontab OR semantics apply. Timezones are IANA
+names; `Local` uses the daemon host timezone.
+Nonexistent wall times during a spring-forward transition are skipped; both
+instances of a repeated wall time during a fall-back transition run.
+
+Create a single isolated run with `schedule_type:"once"`, an RFC 3339
+`run_at`, and `target_type:"one_off"` without a conversation ID:
+
+```json
+{
+  "id": "req-once",
+  "type": "create_scheduled_prompt",
+  "schedule": {
+    "name": "Research follow-up",
+    "prompt": "Research the release notes and summarize material changes.",
+    "target_type": "one_off",
+    "schedule_type": "once",
+    "run_at": "2026-07-15T20:30:00Z",
+    "timezone": "Pacific/Auckland",
+    "enabled": true
+  }
+}
+```
+
+`list_scheduled_prompts` lists every schedule. Include a conversation scope to
+filter the result. Updates send `schedule_id` and a `schedule` patch; deletes
+and manual runs send only `schedule_id`. Running manually does not change the
+next automatic firing.
+
+Existing targets use follow-up semantics: an idle conversation starts
+immediately and a busy one queues the prompt. Further recurrences coalesce
+while the same scheduled prompt is pending. A `one_off` target creates a new
+pathless chat and records it as `last_conversation_id`.
+
+Records report `next_run_at`, `last_run_at`, `last_status`, `last_error`,
+`last_conversation_id`, and `pending`. One-time schedules disable themselves
+when claimed. Automatically claimed work left pending by an unclean daemon stop
+is retried after restart; an interrupted manual Run now does not enable a
+disabled schedule.
+Subscribers receive daemon-global events scoped as
+`{"kind":"schedule","id":"schedule_..."}`:
+
+```text
+scheduled_prompt_created, scheduled_prompt_updated, scheduled_prompt_deleted
+scheduled_prompt_triggered, scheduled_prompt_coalesced
+scheduled_prompt_completed, scheduled_prompt_failed
+```
 
 ## Run controls and events
 

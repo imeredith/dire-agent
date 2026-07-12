@@ -23,6 +23,8 @@ export type {
 
 export type ConnectionStatus = "connecting" | "online" | "offline";
 export type ConversationKind = "project" | "chat";
+export type ScheduledPromptTarget = "project" | "chat" | "one_off";
+export type ScheduledPromptSchedule = "cron" | "once";
 
 export type ThinkingLevel =
   | "off"
@@ -178,6 +180,30 @@ export interface CreateChatOptions {
   thinking_level?: ThinkingLevel;
 }
 
+export interface ScheduledPromptInput {
+  name: string;
+  prompt: string;
+  target_type: ScheduledPromptTarget;
+  conversation_id?: string;
+  schedule_type: ScheduledPromptSchedule;
+  cron?: string;
+  timezone: string;
+  run_at?: string;
+  enabled: boolean;
+}
+
+export interface ScheduledPrompt extends ScheduledPromptInput {
+  id: string;
+  next_run_at?: string;
+  last_run_at?: string;
+  last_status?: string;
+  last_error?: string;
+  last_conversation_id?: string;
+  pending?: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ImageAttachment {
   name?: string;
   mime_type: string;
@@ -224,6 +250,8 @@ export interface Command {
   arguments?: string;
   launcher_id?: string;
   attachments?: ImageAttachment[];
+  schedule_id?: string;
+  schedule?: ScheduledPromptInput;
 }
 
 export interface ResponseEnvelope<T = unknown> {

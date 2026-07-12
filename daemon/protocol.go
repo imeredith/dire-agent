@@ -40,6 +40,8 @@ type Command struct {
 	LauncherID        string                `json:"launcher_id,omitempty"`
 	Arguments         string                `json:"arguments,omitempty"`
 	Attachments       []ImageAttachment     `json:"attachments,omitempty"`
+	ScheduleID        string                `json:"schedule_id,omitempty"`
+	Schedule          *ScheduledPromptInput `json:"schedule,omitempty"`
 	Config            *configuration.Config `json:"config,omitempty"`
 	ExpectedRevision  uint64                `json:"expected_revision,omitempty"`
 }

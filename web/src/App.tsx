@@ -6,10 +6,13 @@ import { TopBar } from "./components/TopBar";
 import { ConversationDrawer } from "./features/conversation/ConversationDrawer";
 import { ConversationView, type SendMode } from "./features/conversation/ConversationView";
 import { SettingsPage } from "./features/settings/SettingsPage";
+import { ScheduleDialog } from "./features/schedules/ScheduleDialog";
+import { SchedulesPage } from "./features/schedules/SchedulesPage";
 import { useConversationSession } from "./hooks/useConversationSession";
 import { useCapabilityCommands } from "./hooks/useCapabilityCommands";
 import { useDaemonConnection } from "./hooks/useDaemonConnection";
 import { useSettings } from "./hooks/useSettings";
+import { useSchedules } from "./hooks/useSchedules";
 import { useSubagents } from "./hooks/useSubagents";
 import { parseComposerInput } from "./lib/conversation";
 import { formatContext, formatTokens, usageContextWindow } from "./lib/display";
@@ -20,6 +23,7 @@ import {
   type Conversation,
   type ImageAttachment,
   type ProjectLauncher,
+  type ScheduledPrompt,
   type WireEvent,
 } from "./lib/protocol";
 import {
@@ -57,6 +61,10 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [dialog, setDialog] = useState<"chat" | "project" | "connection" | "">("");
+  const [scheduleDialog, setScheduleDialog] = useState<{
+    schedule: ScheduledPrompt | null;
+    target: Conversation | null;
+  } | null>(null);
   const [projectLaunchers, setProjectLaunchers] = useState<ProjectLauncher[]>(defaultProjectLaunchers);
   const [openLauncherIDs, setOpenLauncherIDs] = useState<string[]>([]);
   const [activeLauncherID, setActiveLauncherID] = useState("");
@@ -94,10 +102,20 @@ function App() {
     resource: selected,
     connectionVersion: daemon.version,
   });
+  const schedules = useSchedules({
+    client: daemon.client,
+    active: daemon.status === "online",
+    connectionVersion: daemon.version,
+    onNotice: notify,
+  });
   eventSink.current = (event) => {
     session.handleEvent(event);
     subagents.handleEvent(event);
     capabilityCommands.handleEvent(event);
+    schedules.handleEvent(event);
+    if (["scheduled_prompt_triggered", "scheduled_prompt_completed", "scheduled_prompt_failed"].includes(event.type)) {
+      void daemon.refreshConversations();
+    }
   };
   const settings = useSettings({
     client: daemon.client,
@@ -249,7 +267,11 @@ function App() {
   };
 
   const deleteConversation = useCallback(async (resource: Conversation) => {
-    if (!window.confirm(`Delete “${resource.name || resource.id}” and its history?`)) return;
+    const attachedSchedules = schedules.schedules.filter((schedule) => schedule.conversation_id === resource.id).length;
+    const consequence = attachedSchedules > 0
+      ? `, its history, and ${attachedSchedules} attached scheduled prompt${attachedSchedules === 1 ? "" : "s"}`
+      : " and its history";
+    if (!window.confirm(`Delete “${resource.name || resource.id}”${consequence}?`)) return;
     if (!daemon.client?.isOpen) return;
     setBusy("delete");
     try {
@@ -265,7 +287,7 @@ function App() {
     } finally {
       setBusy("");
     }
-  }, [conversations, daemon.client, daemon.removeConversation, notify, selectedID]);
+  }, [conversations, daemon.client, daemon.removeConversation, notify, schedules.schedules, selectedID]);
 
   const submitComposer = async (text: string, mode: SendMode, attachments: ImageAttachment[] = []) => {
     if (!session.runtime || !selected) return;
@@ -376,6 +398,7 @@ function App() {
         onClose={() => setSidebarOpen(false)}
         onSelect={selectConversation}
         onSettings={() => { setView("settings"); setSidebarOpen(false); setDrawerOpen(false); }}
+        onSchedules={() => { setView("schedules"); setSidebarOpen(false); setDrawerOpen(false); setActiveLauncherID(""); }}
         onCreateChat={() => setDialog("chat")}
         onCreateProject={() => setDialog("project")}
         onDelete={(resource) => void deleteConversation(resource)}
@@ -401,6 +424,16 @@ function App() {
         />
         {view === "settings" ? (
           <SettingsPage controller={settings} online={daemon.status === "online"} onSaved={() => notify("Configuration saved")} />
+        ) : view === "schedules" ? (
+          <SchedulesPage
+            controller={schedules}
+            projects={daemon.projects}
+            chats={daemon.chats}
+            online={daemon.status === "online"}
+            onCreate={() => setScheduleDialog({ schedule: null, target: null })}
+            onEdit={(schedule) => setScheduleDialog({ schedule, target: null })}
+            onOpenConversation={selectConversation}
+          />
         ) : (
           <div className="terminal-workspace-panel">
             <div
@@ -475,9 +508,12 @@ function App() {
         tools={daemon.tools}
         subagents={subagents}
         capabilityCommands={capabilityCommands}
+        schedules={schedules}
         onClose={() => setDrawerOpen(false)}
         onUpdate={session.update}
         onDelete={deleteConversation}
+        onAddSchedule={(target) => setScheduleDialog({ schedule: null, target })}
+        onEditSchedule={(schedule) => setScheduleDialog({ schedule, target: null })}
       />
 
       {(dialog === "chat" || dialog === "project") && (
@@ -501,6 +537,23 @@ function App() {
             setEndpoint(value);
             setReconnectKey((current) => current + 1);
             setDialog("");
+          }}
+        />
+      )}
+      {scheduleDialog && (
+        <ScheduleDialog
+          schedule={scheduleDialog.schedule}
+          initialTarget={scheduleDialog.target}
+          projects={daemon.projects}
+          chats={daemon.chats}
+          busy={schedules.busy === "create" || schedules.busy === `update:${scheduleDialog.schedule?.id || ""}`}
+          onClose={() => setScheduleDialog(null)}
+          onSave={async (input) => {
+            const saved = scheduleDialog.schedule
+              ? await schedules.update(scheduleDialog.schedule.id, input)
+              : await schedules.create(input);
+            if (saved) setScheduleDialog(null);
+            return Boolean(saved);
           }}
         />
       )}

@@ -2,6 +2,20 @@ import type { FeatureDoc } from "./types";
 
 export const coreFeatures: FeatureDoc[] = [
   {
+    slug: "scheduled-prompts",
+    title: "Scheduled prompts",
+    group: "Core",
+    summary: "Run prompts once or on a cron schedule in a project, an existing chat, or a fresh isolated chat.",
+    prerequisites: ["Keep the daemon running; browser clients may disconnect after saving a schedule.", "Have at least one project available for the project-target test."],
+    steps: [
+      { action: "Open Scheduled prompts, create `Docs weekday review`, target a project, and enter `0 9 * * 1-5` with your IANA timezone.", expected: "The new card is enabled and shows the daemon-computed next weekday run in the selected timezone." },
+      { action: "Click Run now on the card, then return to the target project.", expected: "The prompt appears as a new turn; if the project was already running it is handled as a follow-up instead of interrupting that run." },
+      { action: "Create another schedule with Once and Fresh one-off standalone chat, choosing a future time.", expected: "The card shows the one-time instant and no existing conversation target; after firing, its result conversation ID points to a new pathless chat." },
+      { action: "Disable the recurring schedule, reload the browser, and reopen Scheduled prompts.", expected: "The schedule remains disabled because definitions and run status are persisted by the daemon, not browser timers." },
+    ],
+    notes: ["Recurring occurrences coalesce while the same scheduled prompt is still running or queued, preventing an unbounded follow-up backlog."],
+  },
+  {
     slug: "daemon-connection",
     title: "Daemon connection",
     group: "Core",

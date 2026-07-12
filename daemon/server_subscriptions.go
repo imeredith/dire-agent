@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"context"
 	"errors"
 	"time"
 )
@@ -63,8 +64,65 @@ func (c *serverClient) closeSubscriptions() {
 	c.mu.Lock()
 	subscriptions := c.subscriptions
 	c.subscriptions = make(map[string]func())
+	scheduleSubscription := c.scheduleSubscription
+	c.scheduleSubscription = nil
 	c.mu.Unlock()
 	for _, unsubscribe := range subscriptions {
+		unsubscribe()
+	}
+	if scheduleSubscription != nil {
+		scheduleSubscription()
+	}
+}
+
+func (c *serverClient) subscribeScheduledPrompts() {
+	c.mu.Lock()
+	if c.scheduleSubscription != nil {
+		c.mu.Unlock()
+		return
+	}
+	c.mu.Unlock()
+	events, unsubscribe := c.manager.SubscribeScheduledPrompts(c.ctx)
+	forwardContext, stopForwarding := context.WithCancel(c.ctx)
+	combinedUnsubscribe := func() {
+		stopForwarding()
+		unsubscribe()
+	}
+	c.mu.Lock()
+	if c.scheduleSubscription != nil {
+		c.mu.Unlock()
+		combinedUnsubscribe()
+		return
+	}
+	c.scheduleSubscription = combinedUnsubscribe
+	c.mu.Unlock()
+	go func() {
+		for {
+			select {
+			case <-forwardContext.Done():
+				return
+			case event := <-events:
+				wire := WireEvent{
+					Type:      event.Type,
+					Scope:     ConversationScope{Kind: "schedule", ID: event.ScheduleID},
+					Timestamp: event.Timestamp.Format(time.RFC3339Nano), Data: event.Data,
+				}
+				select {
+				case c.outbound <- wire:
+				case <-forwardContext.Done():
+					return
+				}
+			}
+		}
+	}()
+}
+
+func (c *serverClient) unsubscribeScheduledPrompts() {
+	c.mu.Lock()
+	unsubscribe := c.scheduleSubscription
+	c.scheduleSubscription = nil
+	c.mu.Unlock()
+	if unsubscribe != nil {
 		unsubscribe()
 	}
 }
@@ -83,4 +141,6 @@ var supportedCommands = []string{
 	"get_capabilities", "config_get", "config_effective", "config_validate", "config_update",
 	"spawn_agent", "list_agents", "get_agent", "send_agent_message", "wait_agents", "interrupt_agent", "delete_agent",
 	"list_capability_commands", "execute_capability_command",
+	"list_scheduled_prompts", "create_scheduled_prompt", "update_scheduled_prompt", "delete_scheduled_prompt", "run_scheduled_prompt",
+	"subscribe_scheduled_prompts", "unsubscribe_scheduled_prompts",
 }

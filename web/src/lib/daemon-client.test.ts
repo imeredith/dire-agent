@@ -277,4 +277,72 @@ describe("DaemonClient", () => {
     });
     await expect(launched).resolves.toEqual({ launched: true, id: "code", label: "Code" });
   });
+
+  it("manages and subscribes to scheduled prompts with the exact wire contract", async () => {
+    const { client, socket } = harness();
+    const connecting = client.connect();
+    socket().open();
+    await connecting;
+
+    const input = {
+      name: "Morning review",
+      prompt: "Review open work",
+      target_type: "project" as const,
+      conversation_id: "project_1",
+      schedule_type: "cron" as const,
+      cron: "0 9 * * 1-5",
+      timezone: "Pacific/Auckland",
+      enabled: true,
+    };
+    const createdRecord = {
+      ...input,
+      id: "schedule_1",
+      next_run_at: "2026-07-12T21:00:00Z",
+      created_at: "now",
+      updated_at: "now",
+    };
+
+    const subscribing = client.subscribeScheduledPrompts();
+    const subscribeRequest = JSON.parse(socket().sent[0]);
+    expect(subscribeRequest).toMatchObject({ type: "subscribe_scheduled_prompts" });
+    socket().message({ id: subscribeRequest.id, type: "response", command: "subscribe_scheduled_prompts", success: true });
+    await subscribing;
+
+    const creating = client.createScheduledPrompt(input);
+    const createRequest = JSON.parse(socket().sent[1]);
+    expect(createRequest).toMatchObject({ type: "create_scheduled_prompt", schedule: input });
+    socket().message({ id: createRequest.id, type: "response", command: "create_scheduled_prompt", success: true, data: createdRecord });
+    await expect(creating).resolves.toEqual(createdRecord);
+
+    const listing = client.listScheduledPrompts();
+    const listRequest = JSON.parse(socket().sent[2]);
+    expect(listRequest).toMatchObject({ type: "list_scheduled_prompts" });
+    socket().message({ id: listRequest.id, type: "response", command: "list_scheduled_prompts", success: true, data: [createdRecord] });
+    await expect(listing).resolves.toEqual([createdRecord]);
+
+    const updatedInput = { ...input, enabled: false };
+    const updating = client.updateScheduledPrompt("schedule_1", updatedInput);
+    const updateRequest = JSON.parse(socket().sent[3]);
+    expect(updateRequest).toMatchObject({ type: "update_scheduled_prompt", schedule_id: "schedule_1", schedule: updatedInput });
+    socket().message({ id: updateRequest.id, type: "response", command: "update_scheduled_prompt", success: true, data: { ...createdRecord, enabled: false } });
+    await expect(updating).resolves.toMatchObject({ id: "schedule_1", enabled: false });
+
+    const running = client.runScheduledPrompt("schedule_1");
+    const runRequest = JSON.parse(socket().sent[4]);
+    expect(runRequest).toMatchObject({ type: "run_scheduled_prompt", schedule_id: "schedule_1" });
+    socket().message({ id: runRequest.id, type: "response", command: "run_scheduled_prompt", success: true, data: createdRecord });
+    await expect(running).resolves.toMatchObject({ id: "schedule_1" });
+
+    const deleting = client.deleteScheduledPrompt("schedule_1");
+    const deleteRequest = JSON.parse(socket().sent[5]);
+    expect(deleteRequest).toMatchObject({ type: "delete_scheduled_prompt", schedule_id: "schedule_1" });
+    socket().message({ id: deleteRequest.id, type: "response", command: "delete_scheduled_prompt", success: true });
+    await deleting;
+
+    const unsubscribing = client.unsubscribeScheduledPrompts();
+    const unsubscribeRequest = JSON.parse(socket().sent[6]);
+    expect(unsubscribeRequest).toMatchObject({ type: "unsubscribe_scheduled_prompts" });
+    socket().message({ id: unsubscribeRequest.id, type: "response", command: "unsubscribe_scheduled_prompts", success: true });
+    await unsubscribing;
+  });
 });

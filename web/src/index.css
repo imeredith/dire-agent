@@ -7,6 +7,7 @@
 @import "./styles/subagents.css";
 @import "./styles/commands.css";
 @import "./styles/settings.css";
+@import "./styles/schedules.css";
 @import "./styles/responsive.css";
 
 @theme {

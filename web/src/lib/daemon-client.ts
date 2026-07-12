@@ -11,6 +11,8 @@ import type {
   Project,
   ProjectLauncher,
   RuntimeState,
+  ScheduledPrompt,
+  ScheduledPromptInput,
   StoredEvent,
   StoredMessage,
   SpawnAgentOptions,
@@ -163,6 +165,39 @@ export class DaemonClient extends DaemonTransport {
       config,
       expected_revision: expectedRevision,
     });
+  }
+
+  listScheduledPrompts(): Promise<ScheduledPrompt[]> {
+    return this.request<ScheduledPrompt[] | null>({ type: "list_scheduled_prompts" })
+      .then((value) => value ?? []);
+  }
+
+  createScheduledPrompt(schedule: ScheduledPromptInput): Promise<ScheduledPrompt> {
+    return this.request<ScheduledPrompt>({ type: "create_scheduled_prompt", schedule });
+  }
+
+  updateScheduledPrompt(scheduleID: string, schedule: ScheduledPromptInput): Promise<ScheduledPrompt> {
+    return this.request<ScheduledPrompt>({
+      type: "update_scheduled_prompt",
+      schedule_id: scheduleID,
+      schedule,
+    });
+  }
+
+  deleteScheduledPrompt(scheduleID: string): Promise<void> {
+    return this.request<void>({ type: "delete_scheduled_prompt", schedule_id: scheduleID });
+  }
+
+  runScheduledPrompt(scheduleID: string): Promise<ScheduledPrompt | undefined> {
+    return this.request<ScheduledPrompt | undefined>({ type: "run_scheduled_prompt", schedule_id: scheduleID });
+  }
+
+  subscribeScheduledPrompts(): Promise<void> {
+    return this.request<void>({ type: "subscribe_scheduled_prompts" });
+  }
+
+  unsubscribeScheduledPrompts(): Promise<void> {
+    return this.request<void>({ type: "unsubscribe_scheduled_prompts" });
   }
 
   async listAgents(conversation: Conversation): Promise<WireSubagentInfo[]> {
