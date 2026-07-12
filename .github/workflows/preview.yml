@@ -1,0 +1,98 @@
+name: PR Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dire-agent-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    # Never execute fork-controlled code on the persistent self-hosted runner.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, Linux, X64, coolify]
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out pull request
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build embedded web UI
+        run: |
+          npm ci --prefix web
+          npm --prefix web run build:embedded
+
+      - name: Build Linux preview binary
+        env:
+          CGO_ENABLED: "0"
+          GOOS: linux
+          GOARCH: amd64
+        run: |
+          mkdir -p dist
+          go build -tags webui -o dist/app ./cmd/dire-agent
+          cat > dist/preview.json <<EOF
+          {
+            "name": "dire-agent-pr-${{ github.event.pull_request.number }}",
+            "port": 8080,
+            "args": ["daemon", "-addr", "0.0.0.0:8080", "-allow-remote"]
+          }
+          EOF
+
+      - name: Open restricted preview API tunnel
+        env:
+          RUNNER_TRACKING_ID: ""
+        run: |
+          ssh \
+            -i /runner/.ssh/id_ed25519 \
+            -o BatchMode=yes \
+            -o ExitOnForwardFailure=yes \
+            -o ServerAliveInterval=30 \
+            -o UserKnownHostsFile=/runner/.ssh/known_hosts \
+            -N -L 18081:127.0.0.1:8081 \
+            deploy@192.168.50.202 &
+          echo "$!" > "${RUNNER_TEMP}/preview-ssh.pid"
+
+          for attempt in $(seq 1 20); do
+            curl -fsS http://127.0.0.1:18081/healthz && exit 0
+            sleep 1
+          done
+          exit 1
+
+      - name: Deploy preview
+        id: preview
+        uses: dire-kiwi/preview-deployment-action@v1
+        with:
+          endpoint: http://127.0.0.1:18081
+          source: dist/app
+          manifest: dist/preview.json
+          cli-version: v0.1.1
+          allow-insecure-http: "true"
+
+      - name: Publish preview URL
+        run: |
+          printf '### Dire Agent preview\n\n%s\n' '${{ steps.preview.outputs.url }}' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Close preview API tunnel
+        if: always()
+        run: |
+          if [ -f "${RUNNER_TEMP}/preview-ssh.pid" ]; then
+            kill "$(cat "${RUNNER_TEMP}/preview-ssh.pid")" 2>/dev/null || true
+          fi
