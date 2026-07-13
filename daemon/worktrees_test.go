@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/imeredith/dire-agent/daemon"
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/daemon"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 func TestManagedWorktreeCreatesDetachedNestedProjectRunsSetupAndPreservesCheckout(t *testing.T) {

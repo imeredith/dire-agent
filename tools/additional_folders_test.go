@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/imeredith/dire-agent/tools"
+	"github.com/dire-kiwi/dire-agent/tools"
 )
 
 func TestFileToolsKeepRelativePathsInMainAndAllowAbsoluteIncludedFolders(t *testing.T) {

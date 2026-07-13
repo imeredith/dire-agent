@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	DefaultLatestBaseURL  = "https://github.com/imeredith/dire-agent/releases/latest/download"
-	DefaultReleaseBaseURL = "https://github.com/imeredith/dire-agent/releases/download"
+	DefaultLatestBaseURL  = "https://github.com/dire-kiwi/dire-agent/releases/latest/download"
+	DefaultReleaseBaseURL = "https://github.com/dire-kiwi/dire-agent/releases/download"
 	maxMetadataBytes      = 1 << 20
 	maxBinaryBytes        = 512 << 20
 )

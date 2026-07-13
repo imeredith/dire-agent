@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/imeredith/dire-agent/configuration"
-	"github.com/imeredith/dire-agent/extensions"
+	"github.com/dire-kiwi/dire-agent/configuration"
+	"github.com/dire-kiwi/dire-agent/extensions"
 )
 
 func TestTrustedExtensionProcessIsSandboxWrapped(t *testing.T) {

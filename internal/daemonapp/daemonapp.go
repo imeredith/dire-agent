@@ -17,14 +17,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/imeredith/dire-agent/capability"
-	"github.com/imeredith/dire-agent/configuration"
-	"github.com/imeredith/dire-agent/daemon"
-	"github.com/imeredith/dire-agent/internal/buildinfo"
-	"github.com/imeredith/dire-agent/internal/lifecycle"
-	"github.com/imeredith/dire-agent/internal/webui"
-	"github.com/imeredith/dire-agent/provider/codex"
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/capability"
+	"github.com/dire-kiwi/dire-agent/configuration"
+	"github.com/dire-kiwi/dire-agent/daemon"
+	"github.com/dire-kiwi/dire-agent/internal/buildinfo"
+	"github.com/dire-kiwi/dire-agent/internal/lifecycle"
+	"github.com/dire-kiwi/dire-agent/internal/webui"
+	"github.com/dire-kiwi/dire-agent/provider/codex"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 // Run starts the daemon and blocks until it is stopped.

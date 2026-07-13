@@ -9,9 +9,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/imeredith/dire-agent/agent"
-	"github.com/imeredith/dire-agent/daemon"
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/agent"
+	"github.com/dire-kiwi/dire-agent/daemon"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 type recordingProvider struct {

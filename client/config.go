@@ -3,8 +3,8 @@ package client
 import (
 	"context"
 
-	"github.com/imeredith/dire-agent/configuration"
-	"github.com/imeredith/dire-agent/daemon"
+	"github.com/dire-kiwi/dire-agent/configuration"
+	"github.com/dire-kiwi/dire-agent/daemon"
 )
 
 func (c *Client) Config(ctx context.Context) (configuration.Config, error) {

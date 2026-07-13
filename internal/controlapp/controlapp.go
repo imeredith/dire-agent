@@ -13,9 +13,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/imeredith/dire-agent/chatui"
-	"github.com/imeredith/dire-agent/client"
-	"github.com/imeredith/dire-agent/daemon"
+	"github.com/dire-kiwi/dire-agent/chatui"
+	"github.com/dire-kiwi/dire-agent/client"
+	"github.com/dire-kiwi/dire-agent/daemon"
 )
 
 // Run executes the control client with the supplied command-line arguments.

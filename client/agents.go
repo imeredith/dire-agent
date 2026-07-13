@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/imeredith/dire-agent/agentteam"
-	"github.com/imeredith/dire-agent/daemon"
+	"github.com/dire-kiwi/dire-agent/agentteam"
+	"github.com/dire-kiwi/dire-agent/daemon"
 )
 
 func (c *Client) SpawnAgent(ctx context.Context, request agentteam.SpawnRequest) (agentteam.Agent, error) {

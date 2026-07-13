@@ -13,14 +13,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/imeredith/dire-agent/agent"
-	"github.com/imeredith/dire-agent/internal/buildinfo"
-	"github.com/imeredith/dire-agent/internal/controlapp"
-	"github.com/imeredith/dire-agent/internal/daemonapp"
-	"github.com/imeredith/dire-agent/internal/lifecycle"
-	"github.com/imeredith/dire-agent/internal/mcpapp"
-	"github.com/imeredith/dire-agent/internal/updater"
-	"github.com/imeredith/dire-agent/provider/codex"
+	"github.com/dire-kiwi/dire-agent/agent"
+	"github.com/dire-kiwi/dire-agent/internal/buildinfo"
+	"github.com/dire-kiwi/dire-agent/internal/controlapp"
+	"github.com/dire-kiwi/dire-agent/internal/daemonapp"
+	"github.com/dire-kiwi/dire-agent/internal/lifecycle"
+	"github.com/dire-kiwi/dire-agent/internal/mcpapp"
+	"github.com/dire-kiwi/dire-agent/internal/updater"
+	"github.com/dire-kiwi/dire-agent/provider/codex"
 )
 
 func main() {

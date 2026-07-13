@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/imeredith/dire-agent/skills"
+	"github.com/dire-kiwi/dire-agent/skills"
 )
 
 func TestDiscoverScopesAncestorCompatibilityAndPrecedence(t *testing.T) {

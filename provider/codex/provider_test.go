@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/imeredith/dire-agent/agent"
+	"github.com/dire-kiwi/dire-agent/agent"
 )
 
 func TestDirectResponsesRequest(t *testing.T) {

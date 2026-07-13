@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/imeredith/dire-agent/agentloop"
-	"github.com/imeredith/dire-agent/configuration"
-	"github.com/imeredith/dire-agent/mcpclient"
+	"github.com/dire-kiwi/dire-agent/agentloop"
+	"github.com/dire-kiwi/dire-agent/configuration"
+	"github.com/dire-kiwi/dire-agent/mcpclient"
 )
 
 func mcpFragment(entry *mcpEntry) Fragment {

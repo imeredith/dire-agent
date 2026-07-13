@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/imeredith/dire-agent/agent"
-	"github.com/imeredith/dire-agent/capability"
-	"github.com/imeredith/dire-agent/skills"
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/agent"
+	"github.com/dire-kiwi/dire-agent/capability"
+	"github.com/dire-kiwi/dire-agent/skills"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 func (m *Manager) getRuntime(ctx context.Context, id string) (*threadRuntime, error) {

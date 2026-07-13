@@ -8,8 +8,8 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/imeredith/dire-agent/configuration"
-	"github.com/imeredith/dire-agent/mcpclient"
+	"github.com/dire-kiwi/dire-agent/configuration"
+	"github.com/dire-kiwi/dire-agent/mcpclient"
 )
 
 func TestMCPSourceConnectsCachesAndFiltersTools(t *testing.T) {
@@ -26,6 +26,9 @@ func TestMCPSourceConnectsCachesAndFiltersTools(t *testing.T) {
 	}})
 	defer source.Close()
 	settings := configuration.DefaultConfig(t.TempDir()).Global
+	// This test supplies a fake transport and does not exercise process sandboxing.
+	// Disable it so the test is portable to Linux runners without sandbox-exec.
+	settings.Tools.Sandbox = configuration.SandboxOff
 	settings.MCP.Servers["docs"] = configuration.MCPServer{
 		Transport: configuration.MCPStdio, Command: "/usr/bin/docs-mcp", Enabled: true,
 		Approval: configuration.ApprovalNever,

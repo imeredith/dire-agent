@@ -12,10 +12,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/imeredith/dire-agent/agentloop"
-	"github.com/imeredith/dire-agent/configuration"
-	"github.com/imeredith/dire-agent/mcpclient"
-	localtools "github.com/imeredith/dire-agent/tools"
+	"github.com/dire-kiwi/dire-agent/agentloop"
+	"github.com/dire-kiwi/dire-agent/configuration"
+	"github.com/dire-kiwi/dire-agent/mcpclient"
+	localtools "github.com/dire-kiwi/dire-agent/tools"
 )
 
 type mcpPool interface {

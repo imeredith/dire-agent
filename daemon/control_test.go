@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/imeredith/dire-agent/internal/lifecycle"
+	"github.com/dire-kiwi/dire-agent/internal/lifecycle"
 )
 
 func TestHealthIdentifiesDaemon(t *testing.T) {

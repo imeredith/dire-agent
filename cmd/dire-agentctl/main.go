@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/imeredith/dire-agent/internal/controlapp"
+	"github.com/dire-kiwi/dire-agent/internal/controlapp"
 )
 
 func main() {

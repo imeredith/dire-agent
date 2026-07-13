@@ -109,7 +109,7 @@ ARM64. Install the current release with:
 
 ```sh
 curl --proto '=https' --tlsv1.2 -fsSL \
-  https://github.com/imeredith/dire-agent/releases/latest/download/install.sh | sh
+  https://github.com/dire-kiwi/dire-agent/releases/latest/download/install.sh | sh
 ```
 
 The installer verifies the release SHA-256 checksum and puts `dire-agent` in a

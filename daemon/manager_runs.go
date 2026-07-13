@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/imeredith/dire-agent/agent"
-	"github.com/imeredith/dire-agent/agentloop"
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/agent"
+	"github.com/dire-kiwi/dire-agent/agentloop"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 // Prompt starts a run or queues the message according to streamingBehavior.

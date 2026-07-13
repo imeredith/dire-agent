@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/imeredith/dire-agent/modelcatalog"
+	"github.com/dire-kiwi/dire-agent/modelcatalog"
 )
 
 // DefaultPath returns the conventional daemon configuration path.

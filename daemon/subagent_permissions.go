@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/imeredith/dire-agent/threadstore"
-	"github.com/imeredith/dire-agent/tools"
+	"github.com/dire-kiwi/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/tools"
 )
 
 // effectiveSubagentTools reapplies the entire ancestry chain on every

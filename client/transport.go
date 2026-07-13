@@ -8,7 +8,7 @@ import (
 
 	"github.com/coder/websocket/wsjson"
 
-	"github.com/imeredith/dire-agent/daemon"
+	"github.com/dire-kiwi/dire-agent/daemon"
 )
 
 func (c *Client) call(ctx context.Context, command daemon.Command, destination any) error {

@@ -3,8 +3,8 @@ package client
 import (
 	"context"
 
-	"github.com/imeredith/dire-agent/capability"
-	"github.com/imeredith/dire-agent/daemon"
+	"github.com/dire-kiwi/dire-agent/capability"
+	"github.com/dire-kiwi/dire-agent/daemon"
 )
 
 func (c *Client) CapabilityCommands(ctx context.Context, conversationID string) ([]daemon.CapabilityCommandInfo, error) {

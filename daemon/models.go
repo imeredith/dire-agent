@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/imeredith/dire-agent/agent"
-	"github.com/imeredith/dire-agent/capability"
-	"github.com/imeredith/dire-agent/modelcatalog"
-	"github.com/imeredith/dire-agent/skills"
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/agent"
+	"github.com/dire-kiwi/dire-agent/capability"
+	"github.com/dire-kiwi/dire-agent/modelcatalog"
+	"github.com/dire-kiwi/dire-agent/skills"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 // ModelInfo describes a model offered to daemon clients. ContextWindow may be

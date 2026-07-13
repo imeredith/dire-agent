@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 func TestOneSQLiteFilePerThreadPersistsData(t *testing.T) {

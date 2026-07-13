@@ -11,8 +11,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/imeredith/dire-agent/configuration"
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/configuration"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 func projectLaunchers(

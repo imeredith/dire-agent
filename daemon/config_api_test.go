@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/imeredith/dire-agent/capability"
-	"github.com/imeredith/dire-agent/client"
-	"github.com/imeredith/dire-agent/configuration"
-	"github.com/imeredith/dire-agent/daemon"
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/capability"
+	"github.com/dire-kiwi/dire-agent/client"
+	"github.com/dire-kiwi/dire-agent/configuration"
+	"github.com/dire-kiwi/dire-agent/daemon"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 func TestConfigurationWebSocketLifecycleAndDefaults(t *testing.T) {

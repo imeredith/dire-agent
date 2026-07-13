@@ -5,9 +5,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/imeredith/dire-agent/agentteam"
-	"github.com/imeredith/dire-agent/daemon"
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/agentteam"
+	"github.com/dire-kiwi/dire-agent/daemon"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 // Daemon is intentionally narrower than client.Client so the MCP bridge is

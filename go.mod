@@ -1,4 +1,4 @@
-module github.com/imeredith/dire-agent
+module github.com/dire-kiwi/dire-agent
 
 go 1.25.0
 

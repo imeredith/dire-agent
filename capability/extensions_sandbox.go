@@ -3,9 +3,9 @@ package capability
 import (
 	"os"
 
-	"github.com/imeredith/dire-agent/configuration"
-	"github.com/imeredith/dire-agent/extensions"
-	localtools "github.com/imeredith/dire-agent/tools"
+	"github.com/dire-kiwi/dire-agent/configuration"
+	"github.com/dire-kiwi/dire-agent/extensions"
+	localtools "github.com/dire-kiwi/dire-agent/tools"
 )
 
 func sandboxExtensionSources(input []extensions.Source, scope Scope, mode configuration.SandboxMode) ([]extensions.Source, []Descriptor) {

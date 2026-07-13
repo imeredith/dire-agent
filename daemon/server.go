@@ -20,9 +20,9 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 
-	"github.com/imeredith/dire-agent/configuration"
-	"github.com/imeredith/dire-agent/internal/buildinfo"
-	"github.com/imeredith/dire-agent/internal/lifecycle"
+	"github.com/dire-kiwi/dire-agent/configuration"
+	"github.com/dire-kiwi/dire-agent/internal/buildinfo"
+	"github.com/dire-kiwi/dire-agent/internal/lifecycle"
 )
 
 type Server struct {

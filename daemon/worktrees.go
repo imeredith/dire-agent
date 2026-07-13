@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 const (

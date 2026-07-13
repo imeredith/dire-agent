@@ -3,7 +3,7 @@
 set -eu
 umask 022
 
-repository="imeredith/dire-agent"
+repository="dire-kiwi/dire-agent"
 install_dir=${DIRE_AGENT_INSTALL_DIR-}
 requested_version=${DIRE_AGENT_VERSION-latest}
 temporary_dir=
@@ -27,8 +27,8 @@ Environment:
   DIRE_AGENT_VERSION      Default value for --version.
 
 Examples:
-  curl --proto '=https' --tlsv1.2 -fsSL https://github.com/imeredith/dire-agent/releases/latest/download/install.sh | sh
-  curl --proto '=https' --tlsv1.2 -fsSL https://github.com/imeredith/dire-agent/releases/latest/download/install.sh | \
+  curl --proto '=https' --tlsv1.2 -fsSL https://github.com/dire-kiwi/dire-agent/releases/latest/download/install.sh | sh
+  curl --proto '=https' --tlsv1.2 -fsSL https://github.com/dire-kiwi/dire-agent/releases/latest/download/install.sh | \
     sh -s -- --install-dir "$HOME/.local/bin" --version v1.2.3
 EOF
 }

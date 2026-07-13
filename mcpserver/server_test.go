@@ -8,11 +8,11 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/imeredith/dire-agent/agent"
-	"github.com/imeredith/dire-agent/agentteam"
-	"github.com/imeredith/dire-agent/daemon"
-	"github.com/imeredith/dire-agent/mcpserver"
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/agent"
+	"github.com/dire-kiwi/dire-agent/agentteam"
+	"github.com/dire-kiwi/dire-agent/daemon"
+	"github.com/dire-kiwi/dire-agent/mcpserver"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 func TestBridgeListsCreatesAndRunsChats(t *testing.T) {

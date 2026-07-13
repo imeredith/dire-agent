@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/imeredith/dire-agent/agent"
+	"github.com/dire-kiwi/dire-agent/agent"
 )
 
 // Tool exposes progressive list/load access without placing full skill bodies

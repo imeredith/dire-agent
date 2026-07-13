@@ -11,13 +11,13 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/imeredith/dire-agent/agent"
-	"github.com/imeredith/dire-agent/agentloop"
-	"github.com/imeredith/dire-agent/agentteam"
-	"github.com/imeredith/dire-agent/capability"
-	"github.com/imeredith/dire-agent/configuration"
-	"github.com/imeredith/dire-agent/skills"
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/agent"
+	"github.com/dire-kiwi/dire-agent/agentloop"
+	"github.com/dire-kiwi/dire-agent/agentteam"
+	"github.com/dire-kiwi/dire-agent/capability"
+	"github.com/dire-kiwi/dire-agent/configuration"
+	"github.com/dire-kiwi/dire-agent/skills"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 type ManagerConfig struct {

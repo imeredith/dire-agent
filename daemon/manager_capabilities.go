@@ -7,13 +7,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/imeredith/dire-agent/agentloop"
-	"github.com/imeredith/dire-agent/agentteam"
-	"github.com/imeredith/dire-agent/capability"
-	"github.com/imeredith/dire-agent/configuration"
-	"github.com/imeredith/dire-agent/skills"
-	"github.com/imeredith/dire-agent/threadstore"
-	"github.com/imeredith/dire-agent/tools"
+	"github.com/dire-kiwi/dire-agent/agentloop"
+	"github.com/dire-kiwi/dire-agent/agentteam"
+	"github.com/dire-kiwi/dire-agent/capability"
+	"github.com/dire-kiwi/dire-agent/configuration"
+	"github.com/dire-kiwi/dire-agent/skills"
+	"github.com/dire-kiwi/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/tools"
 )
 
 func (m *Manager) resolveCapabilities(ctx context.Context, resource threadstore.Thread) (capability.Snapshot, error) {

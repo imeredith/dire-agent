@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/imeredith/dire-agent/agentloop"
-	"github.com/imeredith/dire-agent/configuration"
-	"github.com/imeredith/dire-agent/extensions"
+	"github.com/dire-kiwi/dire-agent/agentloop"
+	"github.com/dire-kiwi/dire-agent/configuration"
+	"github.com/dire-kiwi/dire-agent/extensions"
 )
 
 type remoteExtensionSetting struct {

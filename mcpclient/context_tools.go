@@ -7,8 +7,8 @@ import (
 	"errors"
 	"io"
 
-	"github.com/imeredith/dire-agent/agent"
-	"github.com/imeredith/dire-agent/agentloop"
+	"github.com/dire-kiwi/dire-agent/agent"
+	"github.com/dire-kiwi/dire-agent/agentloop"
 )
 
 func (c *Client) ContextTools() map[string]agentloop.Tool {

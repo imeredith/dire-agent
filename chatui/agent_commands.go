@@ -8,7 +8,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/imeredith/dire-agent/agentteam"
+	"github.com/dire-kiwi/dire-agent/agentteam"
 )
 
 func (m model) agentCommand(input parsedInput) tea.Cmd {
