@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/imeredith/dire-agent/agent"
-	"github.com/imeredith/dire-agent/capability"
-	"github.com/imeredith/dire-agent/modelcatalog"
-	"github.com/imeredith/dire-agent/skills"
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/agent"
+	"github.com/dire-kiwi/dire-agent/capability"
+	"github.com/dire-kiwi/dire-agent/modelcatalog"
+	"github.com/dire-kiwi/dire-agent/skills"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 // ModelInfo describes a model offered to daemon clients. ContextWindow may be
@@ -21,14 +21,34 @@ type ModelInfo struct {
 }
 
 type CreateThreadOptions struct {
-	Name              string   `json:"name,omitempty"`
-	Category          string   `json:"category,omitempty"`
-	Model             string   `json:"model,omitempty"`
-	CWD               string   `json:"cwd,omitempty"`
-	AdditionalFolders []string `json:"additional_folders,omitempty"`
-	Instructions      string   `json:"instructions,omitempty"`
-	ThinkingLevel     string   `json:"thinking_level,omitempty"`
-	Tools             []string `json:"tools,omitempty"`
+	Name              string                 `json:"name,omitempty"`
+	Category          string                 `json:"category,omitempty"`
+	Model             string                 `json:"model,omitempty"`
+	CWD               string                 `json:"cwd,omitempty"`
+	AdditionalFolders []string               `json:"additional_folders,omitempty"`
+	Instructions      string                 `json:"instructions,omitempty"`
+	ThinkingLevel     string                 `json:"thinking_level,omitempty"`
+	Tools             []string               `json:"tools,omitempty"`
+	Worktree          *CreateWorktreeOptions `json:"worktree,omitempty"`
+}
+
+// CreateWorktreeOptions requests an isolated detached Git checkout. CWD is
+// the source project folder unless SourceProjectID identifies it explicitly.
+type CreateWorktreeOptions struct {
+	BaseRef         string `json:"base_ref,omitempty"`
+	EnvironmentID   string `json:"environment_id,omitempty"`
+	SourceProjectID string `json:"source_project_id,omitempty"`
+}
+
+type ProjectWorkspaceInspection struct {
+	Folder              string               `json:"folder"`
+	GitRepository       bool                 `json:"git_repository"`
+	RepositoryRoot      string               `json:"repository_root,omitempty"`
+	ProjectRelativePath string               `json:"project_relative_path,omitempty"`
+	Head                string               `json:"head,omitempty"`
+	CurrentBranch       string               `json:"current_branch,omitempty"`
+	Branches            []string             `json:"branches"`
+	Environments        []ProjectEnvironment `json:"environments"`
 }
 
 // CreateProjectOptions is the project-oriented public name. The alias keeps

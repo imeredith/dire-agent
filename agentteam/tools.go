@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/imeredith/dire-agent/agent"
-	"github.com/imeredith/dire-agent/agentloop"
+	"github.com/dire-kiwi/dire-agent/agent"
+	"github.com/dire-kiwi/dire-agent/agentloop"
 )
 
 type tool struct {

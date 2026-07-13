@@ -6,7 +6,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 func (m *model) resize(width, height int) {

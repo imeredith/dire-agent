@@ -10,10 +10,10 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/imeredith/dire-agent/agentteam"
-	"github.com/imeredith/dire-agent/capability"
-	"github.com/imeredith/dire-agent/daemon"
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/agentteam"
+	"github.com/dire-kiwi/dire-agent/capability"
+	"github.com/dire-kiwi/dire-agent/daemon"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 // API is the daemon client surface used by the chat UI.

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/imeredith/dire-agent/agent"
-	"github.com/imeredith/dire-agent/extensions"
+	"github.com/dire-kiwi/dire-agent/agent"
+	"github.com/dire-kiwi/dire-agent/extensions"
 )
 
 func addExtensionContributions(client *extensions.Client, id string, fragment *Fragment) {

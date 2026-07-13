@@ -34,7 +34,7 @@ export const coreFeatures: FeatureDoc[] = [
     title: "Folder projects and sandbox",
     group: "Core",
     summary: "Keep one folder as the project's main working directory while explicitly including other canonical folders in the same sandbox.",
-    prerequisites: ["Use a main folder and a separate additional folder that are safe for testing.", "The daemon is running on macOS with `/usr/bin/sandbox-exec`."],
+    prerequisites: ["Use a main folder and a separate additional folder that are safe for testing.", "The daemon has its native sandbox available: `/usr/bin/sandbox-exec` on macOS or `/usr/bin/bwrap` on Linux."],
     steps: [
       { action: "Click the plus button beside Projects, name it `Docs project test`, enter the absolute test folder, and create it.", expected: "The project header and sidebar show the canonical folder; the drawer identifies it as a Project." },
       { action: "Open conversation details and inspect Tools.", expected: "The safe defaults `read`, `grep`, `find`, and `ls` are enabled; write-capable tools remain opt-in." },

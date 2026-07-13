@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/imeredith/dire-agent/agent"
+	"github.com/dire-kiwi/dire-agent/agent"
 )
 
 type session struct {

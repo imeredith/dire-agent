@@ -7,7 +7,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/imeredith/dire-agent/agentteam"
+	"github.com/dire-kiwi/dire-agent/agentteam"
 )
 
 type listAgentsInput struct {

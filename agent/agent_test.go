@@ -6,7 +6,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/imeredith/dire-agent/agent"
+	"github.com/dire-kiwi/dire-agent/agent"
 )
 
 func TestUsageJSONFieldNames(t *testing.T) {

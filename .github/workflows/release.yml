@@ -47,6 +47,11 @@ jobs:
       - name: Install web dependencies
         run: npm ci --prefix web
 
+      - name: Install Linux sandbox dependency
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes bubblewrap
+
       - name: Test and type-check web UI
         run: |
           npm --prefix web test
@@ -114,9 +119,9 @@ jobs:
         run: |
           build_date=$(git show -s --format=%cI "$GITHUB_SHA")
           ldflags="-s -w \
-            -X github.com/imeredith/dire-agent/internal/buildinfo.Version=$GITHUB_REF_NAME \
-            -X github.com/imeredith/dire-agent/internal/buildinfo.Commit=$GITHUB_SHA \
-            -X github.com/imeredith/dire-agent/internal/buildinfo.Date=$build_date"
+            -X github.com/dire-kiwi/dire-agent/internal/buildinfo.Version=$GITHUB_REF_NAME \
+            -X github.com/dire-kiwi/dire-agent/internal/buildinfo.Commit=$GITHUB_SHA \
+            -X github.com/dire-kiwi/dire-agent/internal/buildinfo.Date=$build_date"
           CGO_ENABLED=0 go build \
             -tags webui \
             -trimpath \

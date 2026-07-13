@@ -14,9 +14,9 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 
-	"github.com/imeredith/dire-agent/client"
-	"github.com/imeredith/dire-agent/daemon"
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/client"
+	"github.com/dire-kiwi/dire-agent/daemon"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 func TestProjectIDCommandsAndLegacyThreadAliases(t *testing.T) {
@@ -194,7 +194,7 @@ func TestProjectIDCommandsAndLegacyThreadAliases(t *testing.T) {
 	for _, command := range []string{
 		"create_project", "list_projects", "get_project", "get_project_state",
 		"get_project_messages", "get_project_events", "subscribe_project",
-		"unsubscribe_project", "set_project_name", "set_project_category", "set_project_sandbox_folders", "delete_project",
+		"unsubscribe_project", "set_project_name", "set_project_category", "set_project_sandbox_folders", "get_project_sandbox", "set_project_sandbox", "delete_project",
 		"create_thread", "list_threads", "get_thread", "delete_thread",
 	} {
 		if !containsString(commands, command) {

@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/imeredith/dire-agent/configuration"
-	"github.com/imeredith/dire-agent/daemon"
-	"github.com/imeredith/dire-agent/provider/openrouter"
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/configuration"
+	"github.com/dire-kiwi/dire-agent/daemon"
+	"github.com/dire-kiwi/dire-agent/provider/openrouter"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 func TestCreateRequiresRestartAfterProviderSettingChanges(t *testing.T) {

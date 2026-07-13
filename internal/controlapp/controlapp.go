@@ -13,9 +13,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/imeredith/dire-agent/chatui"
-	"github.com/imeredith/dire-agent/client"
-	"github.com/imeredith/dire-agent/daemon"
+	"github.com/dire-kiwi/dire-agent/chatui"
+	"github.com/dire-kiwi/dire-agent/client"
+	"github.com/dire-kiwi/dire-agent/daemon"
 )
 
 // Run executes the control client with the supplied command-line arguments.
@@ -37,9 +37,16 @@ func Run(arguments []string) error {
 	name := flags.String("name", "", "name when creating a project")
 	thinking := flags.String("thinking", "", "thinking level when creating a project")
 	toolNames := flags.String("tools", "", "comma-separated tools when creating a project")
+	worktree := flags.Bool("worktree", false, "create the project in a managed Git worktree")
+	baseRef := flags.String("base-ref", "HEAD", "Git ref used as the worktree starting point")
+	environmentID := flags.String("environment", "", "repo-local environment ID used to set up a new worktree")
+	sourceProjectID := flags.String("source-project", "", "existing project whose settings the worktree inherits")
 	message := flags.String("message", "", "initial chat message or one-shot action text")
 	if err := flags.Parse(arguments); err != nil {
 		return err
+	}
+	if !*worktree && (strings.TrimSpace(*environmentID) != "" || strings.TrimSpace(*sourceProjectID) != "" || strings.TrimSpace(*baseRef) != "HEAD") {
+		return errors.New("-base-ref, -environment, and -source-project require -worktree")
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -56,6 +63,12 @@ func Run(arguments []string) error {
 	}
 	createOptions := daemon.CreateThreadOptions{
 		Name: *name, Model: *model, CWD: folder, ThinkingLevel: *thinking, Tools: splitCSV(*toolNames),
+	}
+	if *worktree {
+		createOptions.Worktree = &daemon.CreateWorktreeOptions{
+			BaseRef: strings.TrimSpace(*baseRef), EnvironmentID: strings.TrimSpace(*environmentID),
+			SourceProjectID: strings.TrimSpace(*sourceProjectID),
+		}
 	}
 	chatOptions := daemon.CreateChatOptions{
 		Name: *name, Model: *model, ThinkingLevel: *thinking,

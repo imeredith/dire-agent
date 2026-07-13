@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/imeredith/dire-agent/agent"
-	"github.com/imeredith/dire-agent/provider/openrouter"
+	"github.com/dire-kiwi/dire-agent/agent"
+	"github.com/dire-kiwi/dire-agent/provider/openrouter"
 )
 
 // TestLiveResponses is an opt-in smoke test that makes one small, tool-free

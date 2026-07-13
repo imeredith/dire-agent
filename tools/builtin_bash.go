@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/imeredith/dire-agent/agentloop"
+	"github.com/dire-kiwi/dire-agent/agentloop"
 )
 
 func bashTool(root string, executor shellExecutor) agentloop.Tool {
 	return functionTool{
-		definition: definition("bash", "Run a shell command from the main project folder in a macOS sandbox. Configured additional folders are writable by absolute path; network and all other writes are denied.", `{"type":"object","properties":{"command":{"type":"string"},"timeout_seconds":{"type":"integer","minimum":1,"maximum":300}},"required":["command"],"additionalProperties":false}`),
+		definition: definition("bash", "Run a shell command from the main project folder in the platform sandbox. Configured additional folders are writable by absolute path; network and all other writes are denied.", `{"type":"object","properties":{"command":{"type":"string"},"timeout_seconds":{"type":"integer","minimum":1,"maximum":300}},"required":["command"],"additionalProperties":false}`),
 		execute: func(ctx context.Context, raw json.RawMessage) (string, error) {
 			var input struct {
 				Command        string `json:"command"`

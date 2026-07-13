@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/imeredith/dire-agent/agent"
+	"github.com/dire-kiwi/dire-agent/agent"
 )
 
 func (r *streamResult) toolCalls() []agent.ToolCall {

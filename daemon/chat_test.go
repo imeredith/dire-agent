@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/imeredith/dire-agent/client"
-	"github.com/imeredith/dire-agent/daemon"
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/client"
+	"github.com/dire-kiwi/dire-agent/daemon"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 func TestStandaloneChatLifecycleAndIsolation(t *testing.T) {
@@ -52,6 +52,13 @@ func TestStandaloneChatLifecycleAndIsolation(t *testing.T) {
 	}
 	if state.Kind != threadstore.KindChat || state.Chat.ID != chat.ID || state.Conversation.ID != chat.ID || state.Project.ID != "" {
 		t.Fatalf("chat state = %#v", state)
+	}
+	capabilityState, err := manager.CapabilityState(ctx, chat.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if capabilityState.Capabilities == nil || capabilityState.Skills == nil || capabilityState.SkillDiagnostics == nil {
+		t.Fatalf("capability state contains nil collections: %#v", capabilityState)
 	}
 	if _, err := api.SetTools(ctx, chat.ID, []string{"read"}); err == nil {
 		t.Fatal("standalone chat accepted a project file tool")

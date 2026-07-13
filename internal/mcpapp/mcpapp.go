@@ -8,8 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/imeredith/dire-agent/client"
-	"github.com/imeredith/dire-agent/mcpserver"
+	"github.com/dire-kiwi/dire-agent/client"
+	"github.com/dire-kiwi/dire-agent/mcpserver"
 )
 
 // Run executes the MCP server with the supplied command-line arguments.

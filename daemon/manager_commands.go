@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/imeredith/dire-agent/capability"
+	"github.com/dire-kiwi/dire-agent/capability"
 )
 
 type CapabilityCommandInfo struct {

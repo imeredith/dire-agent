@@ -1,0 +1,237 @@
+name: PR Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to preview
+        required: true
+        type: string
+      ref:
+        description: Pull request branch or commit to build
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: dire-agent-preview-${{ github.event.pull_request.number || inputs.pr_number }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    # Never execute fork-controlled code on the persistent self-hosted runner.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: [self-hosted, Linux, X64, coolify]
+    timeout-minutes: 30
+
+    steps:
+      - name: Resolve and validate pull request
+        id: pr
+        uses: actions/github-script@v8
+        env:
+          REQUESTED_PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+          REQUESTED_REF: ${{ inputs.ref }}
+        with:
+          script: |
+            const number = Number(process.env.REQUESTED_PR_NUMBER);
+            if (!Number.isSafeInteger(number) || number < 1) {
+              core.setFailed('A valid pull request number is required.');
+              return;
+            }
+
+            const { data: pull } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: number,
+            });
+            const expectedRepository = `${context.repo.owner}/${context.repo.repo}`;
+            if (pull.head.repo?.full_name !== expectedRepository) {
+              core.setFailed(`Fork pull requests are not eligible for authenticated previews: ${pull.head.repo?.full_name}`);
+              return;
+            }
+
+            const requestedRef = process.env.REQUESTED_REF;
+            if (requestedRef && requestedRef !== pull.head.ref && requestedRef !== pull.head.sha) {
+              core.setFailed(`Requested ref does not match PR #${number}.`);
+              return;
+            }
+            core.setOutput('number', String(number));
+            core.setOutput('sha', pull.head.sha);
+
+      - name: Check out pull request
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.pr.outputs.sha }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build embedded web UI
+        run: |
+          npm ci --prefix web
+          npm --prefix web run build:embedded
+
+      - name: Build Linux preview binary
+        env:
+          CGO_ENABLED: "0"
+          GOOS: linux
+          GOARCH: amd64
+        run: |
+          mkdir -p dist
+          go build -tags webui -o dist/app ./cmd/dire-agent
+          cat > dist/preview.json <<EOF
+          {
+            "name": "dire-agent-pr-${{ steps.pr.outputs.number }}",
+            "port": 8080,
+            "args": ["daemon", "-addr", "0.0.0.0:8080", "-allow-remote", "-project-proxy=false"],
+            "codex_auth": true,
+            "env": {
+              "HOME": "/home/preview",
+              "SHELL": "/bin/bash",
+              "CODEX_HOME": "/tmp/.codex",
+              "XDG_CONFIG_HOME": "/home/preview/.config",
+              "XDG_DATA_HOME": "/home/preview/.local/share"
+            }
+          }
+          EOF
+
+      - name: Open restricted preview API tunnel
+        env:
+          RUNNER_TRACKING_ID: ""
+        run: |
+          ssh \
+            -i /runner/.ssh/id_ed25519 \
+            -o BatchMode=yes \
+            -o ExitOnForwardFailure=yes \
+            -o ServerAliveInterval=30 \
+            -o UserKnownHostsFile=/runner/.ssh/known_hosts \
+            -N -L 18081:127.0.0.1:8081 \
+            deploy@192.168.50.202 &
+          echo "$!" > "${RUNNER_TEMP}/preview-ssh.pid"
+
+          for attempt in $(seq 1 20); do
+            curl -fsS http://127.0.0.1:18081/healthz && exit 0
+            sleep 1
+          done
+          exit 1
+
+      - name: Deploy preview
+        id: preview
+        uses: dire-kiwi/preview-deployment-action@v1
+        with:
+          operation: deploy
+          endpoint: http://127.0.0.1:18081
+          source: dist/app
+          manifest: dist/preview.json
+          token: ${{ secrets.PREVIEW_DEPLOYMENT_TOKEN }}
+          cli-version: v0.1.8
+          allow-insecure-http: "true"
+          replace-existing: "true"
+
+      - name: Publish preview URL
+        run: |
+          printf '### Dire Agent preview\n\n%s\n' '${{ steps.preview.outputs.url }}' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment preview URL on pull request
+        uses: actions/github-script@v8
+        env:
+          PREVIEW_URL: ${{ steps.preview.outputs.url }}
+          PREVIEW_PR_NUMBER: ${{ steps.pr.outputs.number }}
+          PREVIEW_SHA: ${{ steps.pr.outputs.sha }}
+        with:
+          script: |
+            const marker = '<!-- dire-agent-preview -->';
+            const pullNumber = Number(process.env.PREVIEW_PR_NUMBER);
+            const body = `${marker}\n## Dire Agent preview\n\n${process.env.PREVIEW_URL}\n\n_Updated for ${process.env.PREVIEW_SHA.slice(0, 7)}._`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pullNumber,
+              per_page: 100,
+            });
+            const existing = comments.find(comment => comment.user?.type === 'Bot' && comment.body?.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pullNumber,
+                body,
+              });
+            }
+
+      - name: Close preview API tunnel
+        if: always()
+        run: |
+          if [ -f "${RUNNER_TEMP}/preview-ssh.pid" ]; then
+            kill "$(cat "${RUNNER_TEMP}/preview-ssh.pid")" 2>/dev/null || true
+          fi
+
+  cleanup:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, Linux, X64, coolify]
+    timeout-minutes: 10
+
+    steps:
+      - name: Open restricted preview API tunnel
+        env:
+          RUNNER_TRACKING_ID: ""
+        run: |
+          ssh \
+            -i /runner/.ssh/id_ed25519 \
+            -o BatchMode=yes \
+            -o ExitOnForwardFailure=yes \
+            -o ServerAliveInterval=30 \
+            -o UserKnownHostsFile=/runner/.ssh/known_hosts \
+            -N -L 18081:127.0.0.1:8081 \
+            deploy@192.168.50.202 &
+          echo "$!" > "${RUNNER_TEMP}/preview-ssh.pid"
+
+          for attempt in $(seq 1 20); do
+            curl -fsS http://127.0.0.1:18081/healthz && exit 0
+            sleep 1
+          done
+          exit 1
+
+      - name: Delete closed pull request preview
+        uses: dire-kiwi/preview-deployment-action@v1
+        with:
+          operation: delete-by-name
+          name: dire-agent-pr-${{ github.event.pull_request.number }}
+          endpoint: http://127.0.0.1:18081
+          token: ${{ secrets.PREVIEW_DEPLOYMENT_TOKEN }}
+          cli-version: v0.1.8
+          allow-insecure-http: "true"
+
+      - name: Close preview API tunnel
+        if: always()
+        run: |
+          if [ -f "${RUNNER_TEMP}/preview-ssh.pid" ]; then
+            kill "$(cat "${RUNNER_TEMP}/preview-ssh.pid")" 2>/dev/null || true
+          fi

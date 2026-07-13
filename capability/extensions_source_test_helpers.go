@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/imeredith/dire-agent/extensions"
+	"github.com/dire-kiwi/dire-agent/extensions"
 )
 
 type fakeExtensionConnector struct {

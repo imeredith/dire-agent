@@ -13,6 +13,8 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/dire-kiwi/dire-agent/internal/sandboxenv"
 )
 
 // StdioConnector launches commands directly with exec.CommandContext. It does
@@ -26,7 +28,7 @@ func (StdioConnector) Connect(ctx context.Context, spec ProcessSpec, limits Limi
 	lifetime, cancel := context.WithCancel(ctx)
 	command := exec.CommandContext(lifetime, spec.Command, spec.Args...)
 	command.Dir = spec.Dir
-	command.Env = mergedEnvironment(spec.Env, spec.InheritEnv)
+	command.Env = processEnvironment(spec)
 	stdin, err := command.StdinPipe()
 	if err != nil {
 		cancel()
@@ -281,4 +283,12 @@ func mergedEnvironment(overrides map[string]string, inherit bool) []string {
 		result = append(result, key+"="+values[key])
 	}
 	return result
+}
+
+func processEnvironment(spec ProcessSpec) []string {
+	environment := mergedEnvironment(spec.Env, spec.InheritEnv)
+	if spec.Sandboxed {
+		environment = sandboxenv.Sanitize(environment)
+	}
+	return environment
 }

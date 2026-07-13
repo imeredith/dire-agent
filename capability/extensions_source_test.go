@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/imeredith/dire-agent/configuration"
+	"github.com/dire-kiwi/dire-agent/configuration"
 )
 
 func TestExtensionSourceDiscoversToolsSkillsAndReusesPerScope(t *testing.T) {

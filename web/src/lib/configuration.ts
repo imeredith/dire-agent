@@ -34,6 +34,7 @@ export interface ProjectLauncher {
   id: string;
   label: string;
   kind: ProjectLauncherKind;
+  icon?: "tool" | "run" | "debug" | "test";
   command?: string;
   args?: string[];
   shortcut?: string;

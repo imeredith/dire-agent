@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/imeredith/dire-agent/agent"
-	"github.com/imeredith/dire-agent/capability"
-	"github.com/imeredith/dire-agent/skills"
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/agent"
+	"github.com/dire-kiwi/dire-agent/capability"
+	"github.com/dire-kiwi/dire-agent/skills"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 func (m *Manager) getRuntime(ctx context.Context, id string) (*threadRuntime, error) {
@@ -246,5 +246,9 @@ func (r *threadRuntime) snapshotThread() threadstore.Thread {
 	thread := r.thread
 	thread.Tools = append([]string(nil), thread.Tools...)
 	thread.AdditionalFolders = append([]string(nil), thread.AdditionalFolders...)
+	if thread.Worktree != nil {
+		copy := *thread.Worktree
+		thread.Worktree = &copy
+	}
 	return thread
 }

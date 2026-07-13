@@ -5,7 +5,7 @@ import (
 	"io/fs"
 	"os"
 
-	"github.com/imeredith/dire-agent/internal/daemonapp"
+	"github.com/dire-kiwi/dire-agent/internal/daemonapp"
 )
 
 func main() {

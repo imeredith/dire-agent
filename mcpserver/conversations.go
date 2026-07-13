@@ -6,7 +6,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/imeredith/dire-agent/daemon"
+	"github.com/dire-kiwi/dire-agent/daemon"
 )
 
 func (s *Server) addConversationTools() {
@@ -32,15 +32,21 @@ func (s *Server) addConversationTools() {
 			})
 			return toolResult(value, err)
 		})
-	mcp.AddTool(s.server, &mcp.Tool{Name: "dire_agent_create_project", Description: "Create a persistent project constrained to an existing absolute folder."},
+	mcp.AddTool(s.server, &mcp.Tool{Name: "dire_agent_create_project", Description: "Create a persistent project in an existing folder or a managed detached Git worktree."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input createProjectInput) (*mcp.CallToolResult, any, error) {
-			if input.Folder == "" {
-				return nil, nil, errors.New("folder is required")
+			if input.Folder == "" && input.SourceProjectID == "" {
+				return nil, nil, errors.New("folder or source_project_id is required")
 			}
-			value, err := s.daemon.CreateProject(ctx, daemon.CreateProjectOptions{
+			options := daemon.CreateProjectOptions{
 				Name: input.Name, Model: input.Model, CWD: input.Folder, Instructions: input.Instructions,
 				ThinkingLevel: input.ThinkingLevel, Tools: input.Tools,
-			})
+			}
+			if input.Worktree || input.BaseRef != "" || input.EnvironmentID != "" || input.SourceProjectID != "" {
+				options.Worktree = &daemon.CreateWorktreeOptions{
+					BaseRef: input.BaseRef, EnvironmentID: input.EnvironmentID, SourceProjectID: input.SourceProjectID,
+				}
+			}
+			value, err := s.daemon.CreateProject(ctx, options)
 			return toolResult(value, err)
 		})
 }

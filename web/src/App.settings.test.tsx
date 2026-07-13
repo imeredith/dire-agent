@@ -59,6 +59,23 @@ describe("App settings", () => {
     expect(within(standalone).getByLabelText("Model")).toHaveValue("openrouter/auto");
   });
 
+  it("sets the global process-sandbox default", async () => {
+    const user = userEvent.setup();
+    await openSettings(user);
+    const tools = screen.getByRole("heading", { name: "Tools, sandbox and queues" }).closest("section")!;
+    await user.selectOptions(within(tools).getByLabelText("Process sandbox default"), "off");
+    await user.click(screen.getAllByRole("button", { name: "Save changes" })[0]);
+
+    await waitFor(() => expect(mockState.requests).toContainEqual(expect.objectContaining({
+      type: "config_update",
+      config: expect.objectContaining({
+        global: expect.objectContaining({
+          tools: expect.objectContaining({ sandbox: "off" }),
+        }),
+      }),
+    })));
+  });
+
   it("surfaces revision conflicts and reloads the authoritative document", async () => {
     const user = userEvent.setup();
     mockState.configConflict = true;

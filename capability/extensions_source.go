@@ -6,10 +6,10 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/imeredith/dire-agent/agentloop"
-	"github.com/imeredith/dire-agent/configuration"
-	"github.com/imeredith/dire-agent/extensions"
-	"github.com/imeredith/dire-agent/skills"
+	"github.com/dire-kiwi/dire-agent/agentloop"
+	"github.com/dire-kiwi/dire-agent/configuration"
+	"github.com/dire-kiwi/dire-agent/extensions"
+	"github.com/dire-kiwi/dire-agent/skills"
 )
 
 type ExtensionDiscoverer func(context.Context, extensions.DiscoverOptions) (extensions.Catalog, error)

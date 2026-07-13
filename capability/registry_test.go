@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/imeredith/dire-agent/configuration"
+	"github.com/dire-kiwi/dire-agent/configuration"
 )
 
 type recordingSettingsStore struct{ id string }

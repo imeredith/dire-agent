@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/imeredith/dire-agent/agentloop"
+	"github.com/dire-kiwi/dire-agent/agentloop"
 )
 
 func readTool(paths pathSandbox) agentloop.Tool {

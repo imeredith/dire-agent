@@ -34,6 +34,7 @@ type ServerConfig struct {
 	Headers              map[string]string `json:"headers,omitempty"`
 	MaxRetries           int               `json:"max_retries,omitempty"`
 	DisableStandaloneSSE bool              `json:"disable_standalone_sse,omitempty"`
+	Sandboxed            bool              `json:"-"`
 	ConnectTimeout       time.Duration     `json:"connect_timeout,omitempty"`
 	ListTimeout          time.Duration     `json:"list_timeout,omitempty"`
 	CallTimeout          time.Duration     `json:"call_timeout,omitempty"`

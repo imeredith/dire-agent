@@ -11,8 +11,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/imeredith/dire-agent/configuration"
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/configuration"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 func projectLaunchers(
@@ -21,6 +21,28 @@ func projectLaunchers(
 	settings *configuration.Store,
 	projectID string,
 ) (threadstore.Project, []configuration.ProjectLauncher, error) {
+	project, resolved, err := resolvedProjectLaunchers(ctx, manager, settings, projectID)
+	if err != nil {
+		return threadstore.Project{}, nil, err
+	}
+	launchers := make([]configuration.ProjectLauncher, 0, len(resolved))
+	for _, entry := range resolved {
+		launchers = append(launchers, entry.launcher)
+	}
+	return project, launchers, nil
+}
+
+type resolvedProjectLauncher struct {
+	launcher configuration.ProjectLauncher
+	script   string
+}
+
+func resolvedProjectLaunchers(
+	ctx context.Context,
+	manager *Manager,
+	settings *configuration.Store,
+	projectID string,
+) (threadstore.Project, []resolvedProjectLauncher, error) {
 	if manager == nil {
 		return threadstore.Project{}, nil, errors.New("daemon: daemon is not initialized")
 	}
@@ -31,14 +53,55 @@ func projectLaunchers(
 	if err := validateProjectLauncherFolder(project); err != nil {
 		return threadstore.Project{}, nil, err
 	}
+	var launchers []configuration.ProjectLauncher
 	if settings == nil {
-		return project, configuration.DefaultProjectLaunchers(), nil
+		launchers = configuration.DefaultProjectLaunchers()
+	} else {
+		effective, _, err := settings.RuntimeSettings(ctx, configScopeID(project))
+		if err != nil {
+			return threadstore.Project{}, nil, err
+		}
+		launchers = configuration.ResolveProjectLaunchers(effective.Launchers)
 	}
-	effective, _, err := settings.RuntimeSettings(ctx, project.ID)
-	if err != nil {
-		return threadstore.Project{}, nil, err
+	resolved := make([]resolvedProjectLauncher, 0, len(launchers)+8)
+	ids := make(map[string]bool, len(launchers)+8)
+	for _, launcher := range launchers {
+		ids[launcher.ID] = true
+		resolved = append(resolved, resolvedProjectLauncher{launcher: launcher})
 	}
-	return project, configuration.ResolveProjectLaunchers(effective.Launchers), nil
+	folder := project.CWD
+	var environments []ProjectEnvironment
+	if project.Worktree != nil && project.Worktree.SourceCWD != "" {
+		folder = project.Worktree.SourceCWD
+		if project.Worktree.EnvironmentID != "" {
+			environment, err := LoadProjectEnvironment(ctx, folder, project.Worktree.EnvironmentID)
+			if err == nil {
+				environments = []ProjectEnvironment{environment}
+			}
+		}
+	} else {
+		environments, _ = ListProjectEnvironments(ctx, folder)
+	}
+	platform := currentEnvironmentPlatform()
+	for _, environment := range environments {
+		for _, action := range environment.Actions {
+			if action.Platform != "" && action.Platform != platform {
+				continue
+			}
+			if ids[action.ID] {
+				return threadstore.Project{}, nil, fmt.Errorf("daemon: duplicate project launcher id %q", action.ID)
+			}
+			ids[action.ID] = true
+			resolved = append(resolved, resolvedProjectLauncher{
+				launcher: configuration.ProjectLauncher{
+					ID: action.ID, Label: environment.Name + " · " + action.Name,
+					Kind: configuration.LauncherTerminal, Icon: action.Icon,
+				},
+				script: action.Command,
+			})
+		}
+	}
+	return project, resolved, nil
 }
 
 func configuredProjectLauncher(
@@ -47,21 +110,21 @@ func configuredProjectLauncher(
 	settings *configuration.Store,
 	projectID string,
 	launcherID string,
-) (threadstore.Project, configuration.ProjectLauncher, error) {
-	project, launchers, err := projectLaunchers(ctx, manager, settings, projectID)
+) (threadstore.Project, resolvedProjectLauncher, error) {
+	project, launchers, err := resolvedProjectLaunchers(ctx, manager, settings, projectID)
 	if err != nil {
-		return threadstore.Project{}, configuration.ProjectLauncher{}, err
+		return threadstore.Project{}, resolvedProjectLauncher{}, err
 	}
 	launcherID = strings.TrimSpace(launcherID)
 	if launcherID == "" {
-		return threadstore.Project{}, configuration.ProjectLauncher{}, errors.New("daemon: launcher id is required")
+		return threadstore.Project{}, resolvedProjectLauncher{}, errors.New("daemon: launcher id is required")
 	}
 	for _, launcher := range launchers {
-		if launcher.ID == launcherID {
+		if launcher.launcher.ID == launcherID {
 			return project, launcher, nil
 		}
 	}
-	return threadstore.Project{}, configuration.ProjectLauncher{}, fmt.Errorf("daemon: unknown project launcher %q", launcherID)
+	return threadstore.Project{}, resolvedProjectLauncher{}, fmt.Errorf("daemon: unknown project launcher %q", launcherID)
 }
 
 func validateProjectLauncherFolder(project threadstore.Project) error {
@@ -75,7 +138,8 @@ func validateProjectLauncherFolder(project threadstore.Project) error {
 	return nil
 }
 
-func projectTerminalCommand(ctx context.Context, project threadstore.Project, launcher configuration.ProjectLauncher) (*exec.Cmd, error) {
+func projectTerminalCommand(ctx context.Context, project threadstore.Project, resolved resolvedProjectLauncher) (*exec.Cmd, error) {
+	launcher := resolved.launcher
 	if project.ResourceKind() != threadstore.KindProject || project.IsSubagent() {
 		return nil, errors.New("daemon: terminal requires a top-level project")
 	}
@@ -85,13 +149,33 @@ func projectTerminalCommand(ctx context.Context, project threadstore.Project, la
 	if launcher.Kind != configuration.LauncherTerminal {
 		return nil, fmt.Errorf("daemon: launcher %q is not a terminal application", launcher.ID)
 	}
-	executable, arguments, err := projectLauncherCommandLine(launcher)
+	var executable string
+	var arguments []string
+	var err error
+	if resolved.script != "" {
+		if runtime.GOOS == "windows" {
+			executable, err = exec.LookPath("powershell.exe")
+			arguments = []string{"-NoProfile", "-NonInteractive", "-Command", resolved.script}
+		} else {
+			executable, err = exec.LookPath("bash")
+			arguments = []string{"-c", resolved.script}
+		}
+	} else {
+		executable, arguments, err = projectLauncherCommandLine(launcher)
+	}
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("daemon: resolve launcher %q command: %w", launcher.ID, err)
 	}
 	command := exec.CommandContext(ctx, executable, arguments...)
 	command.Dir = project.CWD
-	command.Env = terminalEnvironment(os.Environ(), project.ID)
+	environment := terminalEnvironment(os.Environ(), project.ID)
+	if project.Worktree != nil {
+		environment = environmentWithOverrides(environment, map[string]string{
+			"CODEX_SOURCE_TREE_PATH": project.Worktree.SourceCWD,
+			"CODEX_WORKTREE_PATH":    project.Worktree.Path,
+		})
+	}
+	command.Env = environment
 	return command, nil
 }
 
@@ -129,10 +213,11 @@ func launchProjectDesktopApplication(
 	projectID string,
 	launcherID string,
 ) (configuration.ProjectLauncher, error) {
-	project, launcher, err := configuredProjectLauncher(ctx, manager, settings, projectID, launcherID)
+	project, resolved, err := configuredProjectLauncher(ctx, manager, settings, projectID, launcherID)
 	if err != nil {
 		return configuration.ProjectLauncher{}, err
 	}
+	launcher := resolved.launcher
 	if launcher.Kind != configuration.LauncherDesktop {
 		return configuration.ProjectLauncher{}, fmt.Errorf("daemon: launcher %q is not a desktop application", launcher.ID)
 	}

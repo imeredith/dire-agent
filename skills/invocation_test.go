@@ -5,7 +5,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"github.com/imeredith/dire-agent/skills"
+	"github.com/dire-kiwi/dire-agent/skills"
 )
 
 func TestDetectInvocations(t *testing.T) {

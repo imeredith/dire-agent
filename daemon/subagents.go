@@ -10,10 +10,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/imeredith/dire-agent/agentteam"
-	"github.com/imeredith/dire-agent/configuration"
-	"github.com/imeredith/dire-agent/threadstore"
-	"github.com/imeredith/dire-agent/tools"
+	"github.com/dire-kiwi/dire-agent/agentteam"
+	"github.com/dire-kiwi/dire-agent/configuration"
+	"github.com/dire-kiwi/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/tools"
 )
 
 var validAgentName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$`)
@@ -225,7 +225,8 @@ func (m *Manager) newChildThread(id string, parent threadstore.Thread, request a
 	model := firstNonEmpty(request.Model, profile.Model, parent.Model)
 	thinking := firstNonEmpty(request.Thinking, string(profile.Thinking), parent.ThinkingLevel)
 	child := threadstore.Thread{
-		ID: id, Kind: parent.ResourceKind(), ParentID: parent.ID, RootID: teamRootID(parent),
+		ID: id, Kind: parent.ResourceKind(), SettingsID: parent.SettingsID,
+		ParentID: parent.ID, RootID: teamRootID(parent),
 		AgentName: request.Name, AgentRole: request.Role, AgentProfile: request.Profile,
 		AgentTools: append([]string(nil), allowed...), Depth: parent.Depth + 1,
 		Name: request.Name, Model: model, CWD: parent.CWD,

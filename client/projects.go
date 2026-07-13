@@ -3,9 +3,9 @@ package client
 import (
 	"context"
 
-	"github.com/imeredith/dire-agent/configuration"
-	"github.com/imeredith/dire-agent/daemon"
-	"github.com/imeredith/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/configuration"
+	"github.com/dire-kiwi/dire-agent/daemon"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 type LaunchProjectAppResult struct {
@@ -24,6 +24,34 @@ func (c *Client) LaunchProjectApp(ctx context.Context, projectID, launcherID str
 	var result LaunchProjectAppResult
 	err := c.call(ctx, daemon.Command{Type: "launch_project_app", ProjectID: projectID, LauncherID: launcherID}, &result)
 	return result, err
+}
+
+func (c *Client) InspectProjectWorkspace(ctx context.Context, projectID, folder string) (daemon.ProjectWorkspaceInspection, error) {
+	var inspection daemon.ProjectWorkspaceInspection
+	err := c.call(ctx, daemon.Command{Type: "inspect_project_workspace", ProjectID: projectID, Folder: folder}, &inspection)
+	return inspection, err
+}
+
+func (c *Client) ProjectEnvironments(ctx context.Context, projectID, folder string) ([]daemon.ProjectEnvironment, error) {
+	var environments []daemon.ProjectEnvironment
+	err := c.call(ctx, daemon.Command{Type: "get_project_environments", ProjectID: projectID, Folder: folder}, &environments)
+	return environments, err
+}
+
+func (c *Client) PutProjectEnvironment(ctx context.Context, projectID, folder string, environment daemon.ProjectEnvironment, expectedHash string) (daemon.ProjectEnvironment, error) {
+	var saved daemon.ProjectEnvironment
+	err := c.call(ctx, daemon.Command{
+		Type: "put_project_environment", ProjectID: projectID, Folder: folder,
+		Environment: &environment, EnvironmentID: environment.ID, ExpectedHash: expectedHash,
+	}, &saved)
+	return saved, err
+}
+
+func (c *Client) DeleteProjectEnvironment(ctx context.Context, projectID, folder, environmentID, expectedHash string) error {
+	return c.call(ctx, daemon.Command{
+		Type: "delete_project_environment", ProjectID: projectID, Folder: folder,
+		EnvironmentID: environmentID, ExpectedHash: expectedHash,
+	}, nil)
 }
 
 func (c *Client) CreateThread(ctx context.Context, options daemon.CreateThreadOptions) (threadstore.Thread, error) {

@@ -83,6 +83,7 @@ type ProjectLauncher struct {
 	ID       string       `json:"id"`
 	Label    string       `json:"label"`
 	Kind     LauncherKind `json:"kind"`
+	Icon     string       `json:"icon,omitempty"`
 	Command  string       `json:"command,omitempty"`
 	Args     []string     `json:"args,omitempty"`
 	Shortcut string       `json:"shortcut,omitempty"`

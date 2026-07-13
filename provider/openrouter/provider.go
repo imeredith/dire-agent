@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/imeredith/dire-agent/agent"
+	"github.com/dire-kiwi/dire-agent/agent"
 )
 
 // APIError describes an HTTP or streamed error returned by OpenRouter.
