@@ -287,10 +287,11 @@ func (s *Server) handleWebSocket(writer http.ResponseWriter, request *http.Reque
 }
 
 type serverClient struct {
-	manager       *Manager
-	config        *configuration.Store
-	ctx           context.Context
-	outbound      chan<- any
-	mu            sync.Mutex
-	subscriptions map[string]func()
+	manager              *Manager
+	config               *configuration.Store
+	ctx                  context.Context
+	outbound             chan<- any
+	mu                   sync.Mutex
+	subscriptions        map[string]func()
+	scheduleSubscription func()
 }

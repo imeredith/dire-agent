@@ -137,15 +137,37 @@ func (m *Manager) DeleteThread(ctx context.Context, id string) error {
 		}
 	}
 	thread := runtime.snapshotThread()
+	m.scheduleMu.Lock()
+	attachedSchedules, err := m.ListScheduledPrompts(ctx, id)
+	if err != nil {
+		m.scheduleMu.Unlock()
+		return err
+	}
+	for _, schedule := range attachedSchedules {
+		if schedule.Pending {
+			m.scheduleMu.Unlock()
+			return errors.New("daemon: cannot delete a conversation with a running or queued scheduled prompt")
+		}
+	}
+	if err := m.scheduleStore.DeleteForConversation(ctx, id); err != nil {
+		m.scheduleMu.Unlock()
+		return err
+	}
 	m.mu.Lock()
 	delete(m.runtimes, id)
 	m.mu.Unlock()
 	_ = runtime.db.Close()
 	if err := m.config.Store.Delete(id); err != nil {
+		m.scheduleMu.Unlock()
 		return err
 	}
+	m.scheduleMu.Unlock()
 	delete(m.teamMailboxes, id)
 	m.notifyTeamLocked(teamRootID(thread))
+	for _, schedule := range attachedSchedules {
+		m.emitScheduleEvent("scheduled_prompt_deleted", schedule)
+	}
+	m.wakeScheduler()
 	return nil
 }
 
@@ -164,6 +186,11 @@ func (m *Manager) DeleteChat(ctx context.Context, id string) error {
 }
 
 func (m *Manager) Close() error {
+	if m.schedulerCancel != nil {
+		m.schedulerCancel()
+		m.schedulerWG.Wait()
+		m.schedulerDispatchWG.Wait()
+	}
 	m.mu.Lock()
 	runtimes := make([]*threadRuntime, 0, len(m.runtimes))
 	for _, runtime := range m.runtimes {
@@ -181,10 +208,11 @@ func (m *Manager) Close() error {
 		_ = runtime.db.Close()
 	}
 	providerErr := m.config.Provider.Close()
+	scheduleErr := m.scheduleStore.Close()
 	if m.config.Capabilities == nil {
-		return providerErr
+		return errors.Join(providerErr, scheduleErr)
 	}
-	return errors.Join(providerErr, m.config.Capabilities.Close())
+	return errors.Join(providerErr, scheduleErr, m.config.Capabilities.Close())
 }
 
 func (r *threadRuntime) saveState(ctx context.Context) error {

@@ -21,6 +21,19 @@ func (m *Manager) Prompt(ctx context.Context, id, message, streamingBehavior str
 // project's sandbox. Attachments are deliberately unavailable to pathless
 // chats and to queued steering/follow-up messages.
 func (m *Manager) PromptWithAttachments(ctx context.Context, id, message, streamingBehavior string, attachments []ImageAttachment) error {
+	return m.promptWithAttachments(ctx, id, message, streamingBehavior, attachments, nil)
+}
+
+// promptWithAttachments performs the prompt/queue state transition. accepted,
+// when non-nil, runs while the conversation lock is held immediately before
+// the prompt is started or queued. Scheduled prompts use this hook to make
+// their durable claim and runtime delivery one atomic association.
+func (m *Manager) promptWithAttachments(
+	ctx context.Context,
+	id, message, streamingBehavior string,
+	attachments []ImageAttachment,
+	accepted func(queued bool) error,
+) error {
 	if strings.TrimSpace(message) == "" && len(attachments) == 0 {
 		return errors.New("daemon: prompt is empty")
 	}
@@ -47,12 +60,21 @@ func (m *Manager) PromptWithAttachments(ctx context.Context, id, message, stream
 		}
 		switch streamingBehavior {
 		case "steer":
-			runtime.steering = append(runtime.steering, message)
 		case "followUp", "follow_up":
-			runtime.followUps = append(runtime.followUps, message)
 		default:
 			runtime.mu.Unlock()
 			return errors.New("daemon: conversation is running; streaming_behavior must be steer or followUp")
+		}
+		if accepted != nil {
+			if err := accepted(true); err != nil {
+				runtime.mu.Unlock()
+				return err
+			}
+		}
+		if streamingBehavior == "steer" {
+			runtime.steering = append(runtime.steering, message)
+		} else {
+			runtime.followUps = append(runtime.followUps, message)
 		}
 		steeringCount, followCount := len(runtime.steering), len(runtime.followUps)
 		runtime.mu.Unlock()
@@ -63,6 +85,12 @@ func (m *Manager) PromptWithAttachments(ctx context.Context, id, message, stream
 	if err != nil {
 		runtime.mu.Unlock()
 		return err
+	}
+	if accepted != nil {
+		if err := accepted(false); err != nil {
+			runtime.mu.Unlock()
+			return err
+		}
 	}
 	runtime.running = true
 	runtime.thread.Status = "running"
@@ -93,16 +121,6 @@ func (m *Manager) Steer(ctx context.Context, id, message string) error {
 }
 
 func (m *Manager) FollowUp(ctx context.Context, id, message string) error {
-	runtime, err := m.getRuntime(ctx, id)
-	if err != nil {
-		return err
-	}
-	runtime.mu.Lock()
-	running := runtime.running
-	runtime.mu.Unlock()
-	if !running {
-		return m.Prompt(ctx, id, message, "")
-	}
 	return m.Prompt(ctx, id, message, "followUp")
 }
 
@@ -174,6 +192,7 @@ func (r *threadRuntime) run(ctx context.Context, prompt string, attachments []Im
 		}
 		if err := r.saveState(context.Background()); err != nil {
 			r.manager.emit(context.Background(), r, "persistence_error", map[string]string{"error": err.Error()})
+			r.clearQueues()
 			finalErr = err
 			break
 		}
@@ -200,6 +219,11 @@ func (r *threadRuntime) run(ctx context.Context, prompt string, attachments []Im
 	isSubagent := r.thread.IsSubagent()
 	r.mu.Unlock()
 	_ = r.persistThread(context.Background())
+	completionErr := finalErr
+	if completionErr == nil && ctx.Err() != nil {
+		completionErr = ctx.Err()
+	}
+	r.manager.completeScheduledPrompts(r.snapshotThread().ID, completionErr)
 	if isSubagent {
 		r.manager.reportAgentCompletion(r, lastText, finalErr)
 	} else {
@@ -222,6 +246,10 @@ func (r *threadRuntime) takeFollowUpOrSettle() string {
 	defer r.mu.Unlock()
 	messages := takeQueue(&r.followUps, r.thread.FollowUpMode)
 	if len(messages) == 0 {
+		// Enter the settling state under the same lock that observes an empty
+		// follow-up queue. This closes the idle-looking window in which another
+		// prompt could otherwise start before run() begins final persistence.
+		r.finishing = true
 		r.running = false
 		r.cancel = nil
 		r.thread.Status = "idle"

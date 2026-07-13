@@ -140,7 +140,8 @@ func Run(arguments []string) error {
 		Sources:  []capability.Source{mcpSource, extensionSource},
 	})
 	manager, err := daemon.NewManager(daemon.ManagerConfig{
-		Store: store, Provider: provider, DefaultModel: *defaultModel, DefaultCWD: *defaultCWD,
+		Context: ctx,
+		Store:   store, Provider: provider, DefaultModel: *defaultModel, DefaultCWD: *defaultCWD,
 		DefaultTools: SplitList(*defaultTools), DefaultThinking: string(loadedConfig.Global.Thinking.Level),
 		Settings: configStore, Capabilities: capabilities, WorktreeRoot: *worktreeRoot,
 	})

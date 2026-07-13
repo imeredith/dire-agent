@@ -14,6 +14,8 @@ import type {
   ProjectSandboxSettings,
   ProjectWorkspaceInspection,
   RuntimeState,
+  ScheduledPrompt,
+  ScheduledPromptInput,
   SpawnAgentOptions,
   StoredEvent,
   StoredMessage,
@@ -46,6 +48,21 @@ export const chatFixture: Conversation = {
   name: "Web chat",
   cwd: "",
   tools: [],
+};
+
+export const scheduledPromptFixture: ScheduledPrompt = {
+  id: "schedule_web_test",
+  name: "Weekday review",
+  prompt: "Review the project status",
+  target_type: "project",
+  conversation_id: projectFixture.id,
+  schedule_type: "cron",
+  cron: "0 9 * * 1-5",
+  timezone: "Pacific/Auckland",
+  enabled: true,
+  next_run_at: "2026-07-13T21:00:00Z",
+  created_at: "2026-07-10T00:00:00Z",
+  updated_at: "2026-07-10T00:00:00Z",
 };
 
 export const environmentFixture: ProjectEnvironment = {
@@ -123,6 +140,7 @@ export const mockState = {
   capabilityCommands: [] as CapabilityCommandInfo[],
   capabilityCommandResult: { output: "" } as CapabilityCommandResult,
   capabilityCommandError: "",
+  schedules: [] as ScheduledPrompt[],
   environments: [] as ProjectEnvironment[],
   workspaceInspections: {} as Record<string, ProjectWorkspaceInspection>,
   projectSandbox: { global: "strict", effective: "strict" } as ProjectSandboxSettings,
@@ -143,6 +161,7 @@ export function resetMockDaemon() {
   mockState.capabilityCommands = [];
   mockState.capabilityCommandResult = { output: "" };
   mockState.capabilityCommandError = "";
+  mockState.schedules = [];
   mockState.environments = [];
   mockState.workspaceInspections = {};
   mockState.projectSandbox = { global: "strict", effective: "strict" };
@@ -338,6 +357,52 @@ export class MockDaemonClient {
     mockState.config = { ...structuredClone(config), revision: expectedRevision + 1 };
     return structuredClone(mockState.config);
   }
+  async listScheduledPrompts() {
+    this.record({ type: "list_scheduled_prompts" });
+    return structuredClone(mockState.schedules);
+  }
+  async createScheduledPrompt(schedule: ScheduledPromptInput) {
+    this.record({ type: "create_scheduled_prompt", schedule });
+    const created: ScheduledPrompt = {
+      ...schedule,
+      id: `schedule_${mockState.schedules.length + 1}`,
+      next_run_at: schedule.enabled ? (schedule.run_at || "2026-07-13T21:00:00Z") : undefined,
+      created_at: "2026-07-12T00:00:00Z",
+      updated_at: "2026-07-12T00:00:00Z",
+    };
+    mockState.schedules = [...mockState.schedules, created];
+    return structuredClone(created);
+  }
+  async updateScheduledPrompt(scheduleID: string, schedule: ScheduledPromptInput) {
+    this.record({ type: "update_scheduled_prompt", schedule_id: scheduleID, schedule });
+    const current = mockState.schedules.find((item) => item.id === scheduleID)!;
+    const updated: ScheduledPrompt = {
+      ...current,
+      ...schedule,
+      next_run_at: schedule.enabled ? (schedule.run_at || current.next_run_at || "2026-07-13T21:00:00Z") : undefined,
+      updated_at: "2026-07-12T00:00:01Z",
+    };
+    mockState.schedules = mockState.schedules.map((item) => item.id === scheduleID ? updated : item);
+    return structuredClone(updated);
+  }
+  async deleteScheduledPrompt(scheduleID: string) {
+    this.record({ type: "delete_scheduled_prompt", schedule_id: scheduleID });
+    mockState.schedules = mockState.schedules.filter((item) => item.id !== scheduleID);
+  }
+  async runScheduledPrompt(scheduleID: string) {
+    this.record({ type: "run_scheduled_prompt", schedule_id: scheduleID });
+    const current = mockState.schedules.find((item) => item.id === scheduleID)!;
+    const updated: ScheduledPrompt = {
+      ...current,
+      last_run_at: "2026-07-12T00:00:02Z",
+      last_status: "started",
+      updated_at: "2026-07-12T00:00:02Z",
+    };
+    mockState.schedules = mockState.schedules.map((item) => item.id === scheduleID ? updated : item);
+    return structuredClone(updated);
+  }
+  async subscribeScheduledPrompts() { this.record({ type: "subscribe_scheduled_prompts" }); }
+  async unsubscribeScheduledPrompts() { this.record({ type: "unsubscribe_scheduled_prompts" }); }
   async listAgents(conversation: Conversation) { this.record({ type: "list_agents", ...conversationScope(conversation), parent_id: conversation.id }); return mockState.agents; }
   async spawnAgent(conversation: Conversation, options: SpawnAgentOptions) {
     this.record({ type: "spawn_agent", ...conversationScope(conversation), ...options, parent_id: options.parent_id || conversation.id });

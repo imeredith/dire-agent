@@ -25,6 +25,9 @@ from storage, tools, the agent loop, and clients.
 - Prompt, steering, follow-up queues, abort, model/thinking controls, and
   streamed lifecycle events. Reasoning summaries and tool input/output are
   streamed, persisted, and restored in both interactive clients.
+- Daemon-owned scheduled prompts with one-time or five-field cron timing,
+  explicit timezones, persistent project/chat targets, and fresh standalone
+  chats for isolated one-off work.
 - Persistent child agents with profiles, bounded depth/concurrency, durable
   inter-agent messages, wait, interrupt, and completion reporting.
 - Agent Skills-compatible discovery and progressive loading.
@@ -79,6 +82,12 @@ boundary.
 Standalone chats never receive the local built-ins. They may still use trusted
 skills, enabled MCP tools, extensions, and agent-team tools. Remote HTTP MCP
 actions are not constrained by a local filesystem sandbox.
+
+Scheduled prompts do not grant new capabilities. A project job uses that
+project's current sandbox, tools, skills, MCP servers, and extensions at firing
+time; a fresh one-off chat has the same pathless restrictions as any other
+standalone chat. Because these runs are unattended, enable write, shell, and
+remote-action capabilities only where background execution is intended.
 
 Pasted images are accepted only by top-level projects. The daemon validates
 their MIME type and size, generates the filename, rejects symlink escapes, and
@@ -178,6 +187,7 @@ Defaults:
 
 - WebSocket/HTTP: `127.0.0.1:7331`
 - conversation databases: `~/.dire-agent/projects`
+- scheduled prompts: `~/.dire-agent/projects/schedules.sqlite`
 - managed worktrees: `~/.dire-agent/worktrees`
 - configuration: `~/.dire-agent/config.json`
 - model: `gpt-5.6`
@@ -367,6 +377,12 @@ separates Chats and Projects, keeps the transcript independently scrollable,
 streams model/tool activity, displays token/cache/context usage, and includes
 conversation controls, child-agent management, and full-page configuration for
 skills, MCP, extensions, subagents, sandboxing, and desktop metadata.
+
+The Scheduled prompts page manages recurring cron jobs and single future runs.
+A prompt can continue an existing project, continue an existing standalone
+chat, or create a fresh pathless chat for each firing. Due prompts targeting a
+busy conversation join its follow-up queue; further occurrences of the same
+schedule coalesce until that run settles.
 
 Projects can be grouped by category. Selecting one category hides every other
 project and switches away from a previously selected hidden project; the

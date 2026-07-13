@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/dire-kiwi/dire-agent/agentteam"
@@ -198,6 +199,42 @@ func (c *serverClient) handle(command Command) Response {
 		err = c.manager.DeleteAgent(c.ctx, firstNonEmpty(command.ParentID, resourceID), command.AgentID)
 	case "get_commands":
 		response.Data = map[string]any{"commands": supportedCommands}
+	case "list_scheduled_prompts":
+		response.Data, err = c.manager.ListScheduledPrompts(c.ctx, resourceID)
+	case "create_scheduled_prompt":
+		if command.Schedule == nil {
+			err = errors.New("daemon: schedule is required")
+			break
+		}
+		input := *command.Schedule
+		if input.ConversationID == "" && resourceID != "" && !strings.EqualFold(strings.TrimSpace(input.TargetType), "one_off") {
+			input.ConversationID = resourceID
+		}
+		if input.TargetType == "" && input.ConversationID != "" {
+			var resource threadstore.Thread
+			resource, err = c.manager.Thread(c.ctx, input.ConversationID)
+			if err == nil {
+				input.TargetType = scheduleTargetKind(resource)
+			}
+		}
+		if err == nil {
+			response.Data, err = c.manager.CreateScheduledPrompt(c.ctx, input)
+		}
+	case "update_scheduled_prompt":
+		if command.Schedule == nil {
+			err = errors.New("daemon: schedule is required")
+			break
+		}
+		response.Data, err = c.manager.UpdateScheduledPrompt(c.ctx, command.ScheduleID, *command.Schedule)
+	case "delete_scheduled_prompt":
+		err = c.manager.DeleteScheduledPrompt(c.ctx, command.ScheduleID)
+		response.Data = map[string]bool{"deleted": err == nil}
+	case "run_scheduled_prompt":
+		response.Data, err = c.manager.RunScheduledPrompt(c.ctx, command.ScheduleID)
+	case "subscribe_scheduled_prompts":
+		c.subscribeScheduledPrompts()
+	case "unsubscribe_scheduled_prompts":
+		c.unsubscribeScheduledPrompts()
 	case "config_get", "config_effective", "config_validate", "config_update":
 		response.Data, err = c.handleConfig(command, resourceID)
 	case "delete_chat", "delete_project", "delete_conversation", "delete_thread":

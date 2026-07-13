@@ -8,6 +8,7 @@ import (
 	"github.com/dire-kiwi/dire-agent/agent"
 	"github.com/dire-kiwi/dire-agent/capability"
 	"github.com/dire-kiwi/dire-agent/modelcatalog"
+	"github.com/dire-kiwi/dire-agent/schedulestore"
 	"github.com/dire-kiwi/dire-agent/skills"
 	"github.com/dire-kiwi/dire-agent/threadstore"
 )
@@ -61,6 +62,24 @@ type CreateChatOptions struct {
 	Instructions  string `json:"instructions,omitempty"`
 	ThinkingLevel string `json:"thinking_level,omitempty"`
 }
+
+// ScheduledPromptInput is used for both creation and patch-style updates. On
+// update, omitted string/time fields retain their stored values and Enabled
+// retains its value when nil.
+type ScheduledPromptInput struct {
+	Name           string     `json:"name,omitempty"`
+	Prompt         string     `json:"prompt,omitempty"`
+	TargetType     string     `json:"target_type,omitempty"`
+	ConversationID string     `json:"conversation_id,omitempty"`
+	ScheduleType   string     `json:"schedule_type,omitempty"`
+	Cron           string     `json:"cron,omitempty"`
+	Timezone       string     `json:"timezone,omitempty"`
+	RunAt          *time.Time `json:"run_at,omitempty"`
+	Enabled        *bool      `json:"enabled,omitempty"`
+}
+
+// ScheduledPrompt is the daemon-facing name for the durable scheduler record.
+type ScheduledPrompt = schedulestore.Schedule
 
 // ImageAttachment is the WebSocket and persistence representation of a pasted
 // image. Data is accepted only on input; File and Size identify the copy owned

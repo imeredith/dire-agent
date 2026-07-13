@@ -18,6 +18,9 @@ import { SubagentPanel } from "./SubagentPanel";
 import type { SubagentController } from "../../hooks/useSubagents";
 import type { CapabilityCommandController } from "../../hooks/useCapabilityCommands";
 import { CapabilityCommandPanel } from "./CapabilityCommandPanel";
+import type { SchedulesController } from "../../hooks/useSchedules";
+import type { ScheduledPrompt } from "../../lib/protocol";
+import { ConversationSchedules } from "../schedules/ConversationSchedules";
 import {
   formatAdditionalFolders,
   parseAdditionalFolders,
@@ -33,11 +36,14 @@ interface DrawerProps {
   tools: string[];
   subagents: SubagentController;
   capabilityCommands: CapabilityCommandController;
-  projectSandbox: ProjectSandboxSettings | null;
-  projectSandboxLoading: boolean;
+  schedules: SchedulesController;
+	projectSandbox: ProjectSandboxSettings | null;
+	projectSandboxLoading: boolean;
   onClose: () => void;
   onUpdate: (command: Omit<Command, "id">, notice?: string) => Promise<Conversation | null>;
   onDelete: (conversation: Conversation) => Promise<void>;
+  onAddSchedule: (conversation: Conversation) => void;
+  onEditSchedule: (schedule: ScheduledPrompt) => void;
   onManageEnvironments: (project: Conversation) => void;
   onProjectSandboxChange: (mode: SandboxMode | "inherit") => Promise<void>;
 }
@@ -154,6 +160,13 @@ export function ConversationDrawer(props: DrawerProps) {
                 />
               </div>
             </fieldset>
+
+            <ConversationSchedules
+              resource={resource}
+              controller={props.schedules}
+              onAdd={() => props.onAddSchedule(resource)}
+              onEdit={props.onEditSchedule}
+            />
 
             {!isChat && (
               <section className="drawer-section">

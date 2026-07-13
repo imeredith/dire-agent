@@ -1,6 +1,7 @@
 import {
   FolderKanban,
   BookOpenText,
+  CalendarClock,
   MessageSquareText,
   Plus,
   Search,
@@ -14,7 +15,7 @@ import { compactEndpoint, compactPath, relativeTime } from "../lib/display";
 import type { ConnectionStatus, Conversation } from "../lib/protocol";
 import { readAppStorage, removeAppStorage, writeAppStorage } from "../lib/storage";
 
-export type AppView = "conversation" | "settings";
+export type AppView = "conversation" | "schedules" | "settings";
 
 interface SidebarProps {
   open: boolean;
@@ -27,6 +28,7 @@ interface SidebarProps {
   onClose: () => void;
   onSelect: (conversation: Conversation) => void;
   onSettings: () => void;
+  onSchedules: () => void;
   onCreateChat: () => void;
   onCreateProject: () => void;
   onDelete: (conversation: Conversation) => void;
@@ -128,6 +130,10 @@ export function AppSidebar(props: SidebarProps) {
             <BookOpenText size={15} />
             <span className="grid gap-0.5"><strong className="text-[10px] text-slate-300">Documentation</strong><small className="text-[8px] text-slate-600">Feature guides & browser tests</small></span>
           </a>
+          <button aria-label="Scheduled prompts" className={`settings-nav ${props.view === "schedules" ? "selected" : ""}`} onClick={props.onSchedules}>
+            <CalendarClock size={15} />
+            <span><strong>Scheduled prompts</strong><small>Recurring and one-off tasks</small></span>
+          </button>
           <button aria-label="Settings" className={`settings-nav ${props.view === "settings" ? "selected" : ""}`} onClick={props.onSettings}>
             <Settings2 size={15} />
             <span><strong>Settings</strong><small>Models, skills, MCP & agents</small></span>
