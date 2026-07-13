@@ -145,6 +145,81 @@ func (s *Store) Update(ctx context.Context, expectedRevision uint64, replacement
 	return publicConfig(candidate), nil
 }
 
+// SetProjectSandbox atomically changes one project's process-sandbox override.
+// A nil mode removes the override so the project inherits the global default.
+func (s *Store) SetProjectSandbox(ctx context.Context, projectID, folder string, mode *SandboxMode) (Config, error) {
+	if err := contextErr(ctx); err != nil {
+		return Config{}, err
+	}
+	if !configName.MatchString(projectID) {
+		return Config{}, fmt.Errorf("configuration: invalid project id %q", projectID)
+	}
+	if folder == "" || !filepath.IsAbs(folder) {
+		return Config{}, fmt.Errorf("configuration: project %q folder must be absolute", projectID)
+	}
+	if mode != nil && *mode != SandboxStrict && *mode != SandboxWorkspace && *mode != SandboxOff {
+		return Config{}, fmt.Errorf("configuration: invalid sandbox mode %q", *mode)
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	raw, err := s.loadOrCreateLocked(ctx)
+	if err != nil {
+		return Config{}, err
+	}
+	if raw.Projects == nil {
+		raw.Projects = make(map[string]ProjectOverride)
+	}
+	project, exists := raw.Projects[projectID]
+	if mode == nil {
+		if !exists || project.Settings.Tools == nil || project.Settings.Tools.Sandbox == nil {
+			return publicConfig(raw), nil
+		}
+		tools := *project.Settings.Tools
+		tools.Sandbox = nil
+		if tools.Enabled == nil && tools.Approval == nil {
+			project.Settings.Tools = nil
+		} else {
+			project.Settings.Tools = &tools
+		}
+		if emptySettingsPatch(project.Settings) {
+			delete(raw.Projects, projectID)
+		} else {
+			raw.Projects[projectID] = project
+		}
+	} else {
+		if exists && project.Settings.Tools != nil && project.Settings.Tools.Sandbox != nil && *project.Settings.Tools.Sandbox == *mode {
+			return publicConfig(raw), nil
+		}
+		if !exists {
+			project = ProjectOverride{Folder: folder}
+		}
+		tools := ToolPatch{}
+		if project.Settings.Tools != nil {
+			tools = *project.Settings.Tools
+		}
+		sandbox := *mode
+		tools.Sandbox = &sandbox
+		project.Settings.Tools = &tools
+		raw.Projects[projectID] = project
+	}
+
+	raw.Revision++
+	if err := Validate(raw); err != nil {
+		return Config{}, err
+	}
+	if err := s.writeLocked(ctx, raw); err != nil {
+		return Config{}, err
+	}
+	return publicConfig(raw), nil
+}
+
+func emptySettingsPatch(patch SettingsPatch) bool {
+	return patch.Model == nil && patch.Thinking == nil && patch.Tools == nil && patch.Queues == nil &&
+		patch.Skills == nil && patch.MCP == nil && patch.Extensions == nil && patch.Subagents == nil &&
+		patch.Launchers == nil && patch.Desktop == nil && patch.StandaloneChat == nil
+}
+
 func (s *Store) loadOrCreateLocked(ctx context.Context) (Config, error) {
 	file, err := os.Open(s.path)
 	if errors.Is(err, os.ErrNotExist) {

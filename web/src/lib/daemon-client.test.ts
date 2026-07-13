@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { DaemonClient } from "./daemon-client";
 
 class FakeWebSocket extends EventTarget {
@@ -34,6 +34,31 @@ function harness() {
 }
 
 describe("DaemonClient", () => {
+  it("gives worktree creation headroom beyond the setup timeout", async () => {
+    const client = new DaemonClient("ws://example.test/ws");
+    const project = {
+      id: "project_1", kind: "project" as const, model: "gpt-test", thinking_level: "medium" as const,
+      steering_mode: "one-at-a-time" as const, follow_up_mode: "one-at-a-time" as const,
+      tools: [], status: "idle", created_at: "now", updated_at: "now",
+    };
+    const request = vi.spyOn(client, "request").mockResolvedValue(project);
+
+    await client.createProject({
+      name: "Isolated task",
+      cwd: "/repo",
+      worktree: { base_ref: "main", environment_id: "environment.toml" },
+    });
+
+    expect(request).toHaveBeenCalledWith({
+      type: "create_project",
+      options: {
+        name: "Isolated task",
+        cwd: "/repo",
+        worktree: { base_ref: "main", environment_id: "environment.toml" },
+      },
+    }, 900_000);
+  });
+
   it("correlates out-of-order responses and routes unsolicited events", async () => {
     const { client, socket } = harness();
     const events: string[] = [];
@@ -122,6 +147,35 @@ describe("DaemonClient", () => {
       success: true,
     });
     await expect(result).resolves.toBeUndefined();
+  });
+
+  it("normalizes nullable capability collections from deployed daemons", async () => {
+    const { client, socket } = harness();
+    const connecting = client.connect();
+    socket().open();
+    await connecting;
+    const project = {
+      id: "project_1", kind: "project" as const, model: "gpt-test", thinking_level: "medium" as const,
+      steering_mode: "one-at-a-time" as const, follow_up_mode: "one-at-a-time" as const,
+      tools: [], status: "idle", created_at: "now", updated_at: "now",
+    };
+
+    const capabilities = client.getCapabilities(project);
+    const request = JSON.parse(socket().sent[0]);
+    expect(request).toMatchObject({ type: "get_capabilities", project_id: "project_1" });
+    socket().message({
+      id: request.id,
+      type: "response",
+      command: "get_capabilities",
+      success: true,
+      data: { capabilities: null, skills: null, skill_diagnostics: null },
+    });
+
+    await expect(capabilities).resolves.toEqual({
+      capabilities: [],
+      skills: [],
+      skill_diagnostics: [],
+    });
   });
 
   it("scopes subagent commands to chats and correlates the created agent", async () => {
@@ -276,5 +330,75 @@ describe("DaemonClient", () => {
       data: { launched: true, id: "code", label: "Code" },
     });
     await expect(launched).resolves.toEqual({ launched: true, id: "code", label: "Code" });
+  });
+
+  it("inspects repositories and edits project-local environments", async () => {
+    const { client, socket } = harness();
+    const connecting = client.connect();
+    socket().open();
+    await connecting;
+    const project = {
+      id: "project_1", kind: "project" as const, model: "gpt-test", thinking_level: "medium" as const,
+      steering_mode: "one-at-a-time" as const, follow_up_mode: "one-at-a-time" as const,
+      tools: [], status: "idle", created_at: "now", updated_at: "now",
+    };
+    const environment = {
+      id: "environment.toml",
+      version: 1,
+      name: "Development",
+      setup: { script: "npm install" },
+      actions: [{ name: "Test", icon: "test" as const, command: "npm test" }],
+    };
+
+    const inspected = client.inspectProjectWorkspace("/repo");
+    const inspectRequest = JSON.parse(socket().sent[0]);
+    expect(inspectRequest).toMatchObject({ type: "inspect_project_workspace", folder: "/repo" });
+    socket().message({
+      id: inspectRequest.id, type: "response", command: "inspect_project_workspace", success: true,
+      data: { folder: "/repo", git_repository: true, repository_root: "/repo", branches: null, environments: null },
+    });
+    await expect(inspected).resolves.toMatchObject({ branches: [], environments: [] });
+
+    const listed = client.getProjectEnvironments(project);
+    const listRequest = JSON.parse(socket().sent[1]);
+    expect(listRequest).toMatchObject({
+      type: "get_project_environments",
+      conversation_id: "project_1",
+      project_id: "project_1",
+    });
+    socket().message({
+      id: listRequest.id, type: "response", command: "get_project_environments", success: true,
+      data: [{ ...environment, actions: null }],
+    });
+    await expect(listed).resolves.toEqual([{ ...environment, actions: [] }]);
+
+    const saved = client.putProjectEnvironment(project, environment, "old-hash");
+    const putRequest = JSON.parse(socket().sent[2]);
+    expect(putRequest).toMatchObject({
+      type: "put_project_environment",
+      project_id: "project_1",
+      environment_id: "environment.toml",
+      environment,
+      expected_hash: "old-hash",
+    });
+    socket().message({
+      id: putRequest.id, type: "response", command: "put_project_environment", success: true,
+      data: { ...environment, hash: "new-hash" },
+    });
+    await expect(saved).resolves.toMatchObject({ id: "environment.toml", hash: "new-hash" });
+
+    const deleted = client.deleteProjectEnvironment(project, "environment.toml", "new-hash");
+    const deleteRequest = JSON.parse(socket().sent[3]);
+    expect(deleteRequest).toMatchObject({
+      type: "delete_project_environment",
+      project_id: "project_1",
+      environment_id: "environment.toml",
+      expected_hash: "new-hash",
+    });
+    socket().message({
+      id: deleteRequest.id, type: "response", command: "delete_project_environment", success: true,
+      data: { deleted: true, id: "environment.toml" },
+    });
+    await expect(deleted).resolves.toEqual({ deleted: true, id: "environment.toml" });
   });
 });

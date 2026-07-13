@@ -53,6 +53,13 @@ func TestStandaloneChatLifecycleAndIsolation(t *testing.T) {
 	if state.Kind != threadstore.KindChat || state.Chat.ID != chat.ID || state.Conversation.ID != chat.ID || state.Project.ID != "" {
 		t.Fatalf("chat state = %#v", state)
 	}
+	capabilityState, err := manager.CapabilityState(ctx, chat.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if capabilityState.Capabilities == nil || capabilityState.Skills == nil || capabilityState.SkillDiagnostics == nil {
+		t.Fatalf("capability state contains nil collections: %#v", capabilityState)
+	}
 	if _, err := api.SetTools(ctx, chat.ID, []string{"read"}); err == nil {
 		t.Fatal("standalone chat accepted a project file tool")
 	}

@@ -240,5 +240,9 @@ func (r *threadRuntime) snapshotThread() threadstore.Thread {
 	thread := r.thread
 	thread.Tools = append([]string(nil), thread.Tools...)
 	thread.AdditionalFolders = append([]string(nil), thread.AdditionalFolders...)
+	if thread.Worktree != nil {
+		copy := *thread.Worktree
+		thread.Worktree = &copy
+	}
 	return thread
 }

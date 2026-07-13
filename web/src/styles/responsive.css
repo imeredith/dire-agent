@@ -28,6 +28,7 @@
   .revision-chip { display: none; }
   .settings-index a { flex: 0 0 auto; border: 1px solid var(--line-soft); background: #0d1015; }
   .desktop-guides { grid-template-columns: 1fr; }
+  .environment-layout { grid-template-columns: 155px minmax(0, 1fr); }
 }
 
 @media (max-width: 620px) {
@@ -70,6 +71,10 @@
   .info-strip { align-items: flex-start; flex-direction: column; gap: 4px; }
   .modal-layer { padding: 10px; }
   .modal-card { padding: 15px; }
+  .environment-modal { height: calc(100dvh - 20px); }
+  .environment-layout { display: block; overflow-y: auto; }
+  .environment-list { max-height: 170px; overflow-y: auto; margin-bottom: 14px; border-right: 0; border-bottom: 1px solid var(--line-soft); padding: 0 0 12px; }
+  .environment-editor { overflow: visible; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -36,8 +36,9 @@ from storage, tools, the agent loop, and clients.
   React/Tailwind/Vite app. An optional MCP compatibility bridge is included but
   is not part of the direct Codex provider path.
 - Persisted project categories with a category-only privacy view, keyboard
-  slash-command completion, project-scoped image paste, and persistent,
-  configurable workspace tabs for terminals, TUIs, and desktop launchers.
+  slash-command completion, project-scoped image paste, managed detached Git
+  worktrees, and persistent, configurable workspace tabs for terminals, TUIs,
+  environment actions, and desktop launchers.
 - Built-in `read`, `grep`, `find`, `ls`, `write`, `edit`, and `bash` tools.
 
 ## Security boundary
@@ -50,18 +51,30 @@ additional folder is addressed by its absolute path. New projects receive only
 containment across the configured roots; `write` and `edit` cannot escape the
 project sandbox.
 
-`bash` runs through macOS `/usr/bin/sandbox-exec`, with the main project folder,
-included folders, and temporary directories writable and network access denied.
-It fails closed when the sandbox is unavailable. Linux builds currently support
-the file tools and clients, but the `bash` tool and sandboxed local MCP/extension
-processes remain unavailable until a Linux process sandbox is implemented.
-Configured stdio MCP servers and trusted extension processes receive the same
-included folders and are also wrapped by `sandbox-exec` unless their sandbox
-mode is explicitly `off`:
+`bash` runs through the native process sandbox: macOS
+`/usr/bin/sandbox-exec` or Linux `/usr/bin/bwrap`. The main project folder and
+included folders are writable and network access is denied. Bubblewrap uses an
+empty mount namespace with selected system/toolchain paths read-only, fresh
+`/proc` and `/dev`, and private temporary filesystems; home directories and
+broad host runtime trees such as `/run` and `/var` are not mounted. Process
+tools fail closed when the platform sandbox is unavailable. Configured stdio
+MCP servers and trusted extension processes receive the same included folders
+and are wrapped by the same native sandbox unless their mode is explicitly
+`off`:
 
 - `strict`: project sandbox/temp writes only; network denied.
 - `workspace`: the same file boundary with network allowed.
 - `off`: no process sandbox; the child has the daemon user's permissions.
+
+The Settings page selects the global process-sandbox default. In a project's
+details drawer, **Process sandbox** can override it or select **Disabled**;
+choosing **Use global default** removes that project override. Worktrees share
+their source project's sandbox policy.
+
+Sandboxed launches remove dynamic-loader control variables such as `LD_*`,
+`DYLD_*`, and `GCONV_PATH` from the child environment because a platform loader
+would otherwise interpret them before the sandbox wrapper establishes the
+boundary.
 
 Standalone chats never receive the local built-ins. They may still use trusted
 skills, enabled MCP tools, extensions, and agent-team tools. Remote HTTP MCP
@@ -77,8 +90,17 @@ The browser sends only a configured launcher ID; the daemon resolves its direct
 executable and argument list without invoking a shell. Terminal/TUI processes
 start in the selected project folder and desktop applications open on the
 machine running the daemon. Both have the daemon user's normal permissions and
-are outside the agent's `sandbox-exec` boundary. Agent `bash`, stdio MCP, and
+are outside the agent process-sandbox boundary. Agent `bash`, stdio MCP, and
 extension execution retain the sandbox policy described above.
+
+Repository-local environment setup and action commands are trusted project
+configuration, not model tools. Setup runs only while creating a new managed
+worktree. Environment actions are opened explicitly by the user as terminal
+tabs. Setup executes in the new worktree and actions execute in the selected
+project's working directory, with the daemon user's normal permissions and
+outside the agent sandbox. They may therefore access the network and files
+available to that user. Review `.codex/environments/*.toml` before selecting an
+environment or launching one of its actions.
 
 The browser terminal loads Cascadia Code from Google Fonts, uses the pinned Nerd
 Fonts 3.4 symbols-only webfont for TUI icons, enables programming ligatures,
@@ -106,6 +128,13 @@ The installer verifies the release SHA-256 checksum and puts `dire-agent` in a
 writable directory already on `PATH` when possible. Set `DIRE_AGENT_INSTALL_DIR`
 to choose another directory, or `DIRE_AGENT_VERSION` to install a particular
 release.
+
+Linux process sandboxing is a lazy external dependency. Install your
+distribution's `bubblewrap` package (version 0.5.0 or newer) so that
+`/usr/bin/bwrap` is available if you enable `bash` or sandboxed local
+MCP/extension processes. File-only projects and clients do not require it. The
+host kernel or container must also permit unprivileged user and mount
+namespaces.
 
 For an existing installation, prefer `dire-agent upgrade`; it coordinates the
 binary replacement with the managed daemon and restarts it when necessary.
@@ -149,6 +178,7 @@ Defaults:
 
 - WebSocket/HTTP: `127.0.0.1:7331`
 - conversation databases: `~/.dire-agent/projects`
+- managed worktrees: `~/.dire-agent/worktrees`
 - configuration: `~/.dire-agent/config.json`
 - model: `gpt-5.6`
 - credentials: `$CODEX_HOME/auth.json` or `~/.codex/auth.json`
@@ -169,6 +199,7 @@ Override the main paths and project defaults with flags:
 ```sh
 go run ./cmd/dire-agent daemon \
   -data-dir ./agent-data \
+  -worktree-root ./agent-worktrees \
   -config ./dire-agent.json \
   -cwd /path/to/project \
   -tools read,grep,find,ls,write,edit,bash
@@ -177,9 +208,93 @@ go run ./cmd/dire-agent daemon \
 Configuration is validated, revisioned, atomically replaced, and written with
 mode `0600`. It has global settings plus per-project overrides for models,
 queues, sandbox policy, skills, MCP servers, extensions, child-agent profiles,
-desktop metadata, and standalone-chat defaults. WebSocket configuration reads
-redact secret environment variables and headers; sending `[redacted]` back in
-an update preserves the stored value.
+desktop metadata, and standalone-chat defaults. WebSocket configuration
+responses redact secret environment variables and headers; sending `[redacted]`
+back in an update preserves the stored value.
+
+## Project workspaces and local environments
+
+A project can use an existing **Local checkout** or a **New worktree**. A local
+checkout keeps the current behavior: the canonical folder supplied as `cwd` is
+the project's main working directory. New-worktree creation treats `cwd` as the
+source folder, resolves its Git repository and `base_ref` (default `HEAD`) to a
+commit, and creates a detached Git worktree below `~/.dire-agent/worktrees`.
+The daemon's `-worktree-root` flag overrides that location. A pre-existing
+custom root must be a real, owner-only directory (for example, mode `0700`);
+the daemon validates its permissions without changing them.
+When the source folder is below the repository root, the corresponding
+subdirectory in the managed checkout becomes the project folder. That managed
+folder, not the source checkout, is the canonical working directory for agent
+tools, skills, terminals, launchers, attachments, and child agents.
+
+Managed worktrees start from committed Git state. Modified, untracked, and
+ignored files in the source checkout are not copied into the new checkout. If
+Git checkout, environment setup, or project publication fails, the unpublished
+worktree is force-rolled back and no project is created. A successfully created
+worktree is published as a durable workspace: deleting the Dire Agent
+conversation and its SQLite history does not delete that worktree or run its
+cleanup script.
+
+Each selected source/project folder may define Codex-compatible local
+environments under `.codex/environments/*.toml`. This lets separate projects
+inside a monorepo keep independent environment definitions. The environment ID
+is the complete basename, including its `.toml` suffix. For example,
+environment ID `node.toml` refers to `.codex/environments/node.toml`, which may
+contain:
+
+```toml
+version = 1
+name = "Node development"
+
+[setup]
+script = """
+npm install
+"""
+
+[setup.darwin]
+script = """
+# Optional macOS-specific setup
+"""
+
+[setup.linux]
+script = """
+# Optional Linux-specific setup
+"""
+
+[setup.win32]
+script = """
+# Optional Windows-specific setup
+"""
+
+[cleanup]
+script = """
+# Optional cleanup retained with the environment definition
+"""
+
+[[actions]]
+name = "Run development server"
+icon = "run"
+command = "npm run dev"
+
+[[actions]]
+name = "Test"
+icon = "test"
+command = "npm test"
+```
+
+`setup` and optional `cleanup` support corresponding `darwin`, `linux`, and
+`win32` script sections. A non-empty host-specific setup script replaces the
+base script; otherwise setup falls back to `setup.script`. Cleanup is parsed,
+validated, and preserved for Codex compatibility but is not automatically run
+in this release. Action icons are `tool`, `run`, `debug`, or `test`; omit
+`platform` to make an action available everywhere, or set it to `darwin`,
+`linux`, or `win32`. Selecting an `environment_id`, such as `node.toml`, runs
+its applicable setup only for a newly created worktree. Setup is not run when
+opening a local checkout or restoring an existing project. Applicable actions
+appear as user-operated terminal tabs. Local projects expose actions from
+every environment in their source/project folder; managed worktrees expose
+actions from the selected source environment and run them from the managed
+checkout.
 
 ## Terminal chat
 
@@ -189,7 +304,16 @@ Create or open a folder project:
 dire-agent
 dire-agent tui -project PROJECT_ID
 dire-agent tui -folder /path/to/project
+dire-agent tui -folder /path/to/repository -worktree
+dire-agent tui -folder /path/to/repository -worktree \
+  -base-ref main -environment node.toml
 ```
+
+`-worktree` creates a managed detached checkout rather than binding the source
+folder directly. `-base-ref` defaults to `HEAD`; `-environment` selects a
+repo-local environment. `-source-project PROJECT_ID` can use an existing
+project's source workspace and settings without transferring its conversation
+history.
 
 Create or open a pathless standalone chat:
 
@@ -250,7 +374,10 @@ privacy filter survives reloads. Paste PNG, JPEG, WebP, or GIF data directly
 into the composer. The composer footer contains model, thinking, and queue
 selectors, while `/` commands complete with Tab, Enter, or arrow keys. A
 project's details drawer can include additional sandbox folders without
-changing its main folder or relative working directory.
+changing its main folder or relative working directory. The creation dialog
+can bind an existing local checkout or create a detached worktree at a starting
+ref, optionally running one discovered local environment. The environment
+editor reads and writes the repository's `.codex/environments/*.toml` files.
 
 The default project application shortcuts are:
 
@@ -400,7 +527,7 @@ performed by the daemon.
 - `provider/codex`: direct Codex credentials, HTTP/SSE, state, and tool calls.
 - `threadstore`: per-conversation SQLite persistence; the historical name is
   retained for compatibility.
-- `tools`: confined built-ins and reusable macOS process sandboxing.
+- `tools`: confined built-ins and reusable macOS/Linux process sandboxing.
 - `skills`, `mcpclient`, `extensions`, `capability`: discovery, transports,
   trust/policy, hooks, and per-run capability composition.
 - `agentteam`: persistent child-agent model tools and shared types.
@@ -414,8 +541,9 @@ performed by the daemon.
 - The ChatGPT subscription endpoint is not a public, supported OpenAI API and
   can change without compatibility guarantees. A supported Platform provider
   can be added behind the existing interfaces.
-- Process sandboxing currently depends on macOS `sandbox-exec`. Sandboxed local
-  tools/MCP/extensions fail closed on unsupported hosts.
+- Process sandboxing depends on macOS `sandbox-exec` or Linux Bubblewrap.
+  Sandboxed local tools/MCP/extensions fail closed when the executable is
+  missing or the host/container blocks the required namespaces.
 - There is no interactive approval broker yet. MCP tools configured as
   `on-request` or `always` are reported as approval-required and are not exposed
   to the model; explicitly trusted tools require `approval: "never"`.
@@ -426,6 +554,9 @@ performed by the daemon.
   out-of-process adapter protocol. Adapter UI/settings/tool-renderer
   registrations and manifest theme/app/MCP metadata are catalogued but are not
   yet activated as client UI or imported automatically.
+- Managed worktrees do not yet provide Codex task handoff, retention-policy or
+  automatic-cleanup controls, or worktree snapshot/restore parity. Deleting
+  conversation history deliberately preserves a published managed checkout.
 - Session compaction, forking, and tree navigation for ordinary conversations
   are not implemented. Child-agent trees are a separate orchestration feature.
 - The daemon/WebSocket has no built-in authentication or TLS.

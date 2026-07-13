@@ -130,6 +130,11 @@ func validateLaunchers(configured []ProjectLauncher, scope string) error {
 			return fmt.Errorf("configuration: %s contains duplicate launcher id %q", scope, launcher.ID)
 		}
 		ids[launcher.ID] = struct{}{}
+		switch launcher.Icon {
+		case "", "tool", "run", "debug", "test":
+		default:
+			return fmt.Errorf("configuration: %s launcher %q has an invalid icon", scope, launcher.ID)
+		}
 		if strings.TrimSpace(launcher.Label) == "" || len(launcher.Label) > 128 || containsControl(launcher.Label) {
 			return fmt.Errorf("configuration: %s launcher %q has an invalid label", scope, launcher.ID)
 		}

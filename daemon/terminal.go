@@ -100,7 +100,7 @@ func (s *Server) handleTerminal(writer http.ResponseWriter, request *http.Reques
 		defer writeCancel()
 		return wsjson.Write(writeContext, connection, message)
 	}
-	if err := write(terminalServerMessage{Type: "ready", Mode: launcher.ID, CWD: project.CWD}); err != nil {
+	if err := write(terminalServerMessage{Type: "ready", Mode: launcher.launcher.ID, CWD: project.CWD}); err != nil {
 		return
 	}
 

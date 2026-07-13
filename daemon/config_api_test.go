@@ -95,6 +95,22 @@ func TestConfigurationWebSocketLifecycleAndDefaults(t *testing.T) {
 	if effective.ProjectOverride || effective.Settings.Model.ID != "configured-model" {
 		t.Fatalf("effective = %+v", effective)
 	}
+	sandbox, err := api.ProjectSandbox(ctx, project.ID)
+	if err != nil || sandbox.Global != configuration.SandboxStrict || sandbox.Effective != configuration.SandboxStrict || sandbox.Override != nil {
+		t.Fatalf("initial sandbox = %+v err=%v", sandbox, err)
+	}
+	off := configuration.SandboxOff
+	sandbox, err = api.SetProjectSandbox(ctx, project.ID, &off)
+	if err != nil || sandbox.Effective != configuration.SandboxOff || sandbox.Override == nil || *sandbox.Override != configuration.SandboxOff {
+		t.Fatalf("disabled sandbox = %+v err=%v", sandbox, err)
+	}
+	effective, err = api.EffectiveConfig(ctx, project.ID)
+	if err != nil || effective.Settings.Tools.Sandbox != configuration.SandboxOff {
+		t.Fatalf("effective sandbox = %+v err=%v", effective.Settings.Tools, err)
+	}
+	if _, err := api.SetProjectSandbox(ctx, project.ID, nil); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := api.Capabilities(ctx, project.ID); err != nil {
 		t.Fatal(err)
 	}

@@ -164,6 +164,39 @@ func TestStoreRedactsSecretsInProjectPatches(t *testing.T) {
 	}
 }
 
+func TestStoreSetProjectSandboxOverridesAndInherits(t *testing.T) {
+	home := t.TempDir()
+	store, err := NewStore(filepath.Join(home, "settings.json"), DefaultConfig(home))
+	if err != nil {
+		t.Fatal(err)
+	}
+	folder := filepath.Join(home, "project")
+	mode := SandboxOff
+	updated, err := store.SetProjectSandbox(context.Background(), "project", folder, &mode)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := updated.Projects["project"].Settings.Tools.Sandbox; got == nil || *got != SandboxOff {
+		t.Fatalf("project sandbox = %v, want off", got)
+	}
+	effective, found, err := store.RuntimeSettings(context.Background(), "project")
+	if err != nil || !found || effective.Tools.Sandbox != SandboxOff {
+		t.Fatalf("effective sandbox = %q found=%v err=%v", effective.Tools.Sandbox, found, err)
+	}
+
+	updated, err = store.SetProjectSandbox(context.Background(), "project", folder, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, exists := updated.Projects["project"]; exists {
+		t.Fatal("inheritance-only project override was retained")
+	}
+	effective, found, err = store.RuntimeSettings(context.Background(), "project")
+	if err != nil || found || effective.Tools.Sandbox != SandboxStrict {
+		t.Fatalf("inherited sandbox = %q found=%v err=%v", effective.Tools.Sandbox, found, err)
+	}
+}
+
 func assertSecretsRedacted(t *testing.T, server MCPServer) {
 	t.Helper()
 	if server.Env["OPAQUE"] != RedactedValue || server.Env["API_TOKEN"] != RedactedValue {

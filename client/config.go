@@ -38,6 +38,24 @@ func (c *Client) EffectiveConfig(ctx context.Context, conversationID string) (Ef
 	return result, err
 }
 
+func (c *Client) ProjectSandbox(ctx context.Context, projectID string) (daemon.ProjectSandboxSettings, error) {
+	var result daemon.ProjectSandboxSettings
+	err := c.call(ctx, daemon.Command{Type: "get_project_sandbox", ProjectID: projectID}, &result)
+	return result, err
+}
+
+// SetProjectSandbox sets a project's sandbox mode. A nil mode makes the
+// project inherit the global default again.
+func (c *Client) SetProjectSandbox(ctx context.Context, projectID string, mode *configuration.SandboxMode) (daemon.ProjectSandboxSettings, error) {
+	requested := "inherit"
+	if mode != nil {
+		requested = string(*mode)
+	}
+	var result daemon.ProjectSandboxSettings
+	err := c.call(ctx, daemon.Command{Type: "set_project_sandbox", ProjectID: projectID, Sandbox: requested}, &result)
+	return result, err
+}
+
 func (c *Client) Capabilities(ctx context.Context, conversationID string) (daemon.CapabilityState, error) {
 	var result daemon.CapabilityState
 	err := c.call(ctx, daemon.Command{

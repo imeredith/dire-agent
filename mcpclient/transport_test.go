@@ -41,6 +41,32 @@ func TestDefaultTransportFactoryBuildsStdio(t *testing.T) {
 	}
 }
 
+func TestSandboxedStdioStripsLoaderEnvironment(t *testing.T) {
+	t.Setenv("LD_PRELOAD", "./project-owned.so")
+	factory := DefaultTransportFactory{}
+	transport, err := factory.NewTransport(context.Background(), ServerConfig{
+		Name: "local", Transport: TransportStdio, Command: "sandbox-wrapper",
+		Environment:        map[string]string{"DYLD_INSERT_LIBRARIES": "./project-owned.dylib", "SAFE": "value"},
+		InheritEnvironment: true, Sandboxed: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	command := transport.(*mcp.CommandTransport).Command
+	for _, entry := range command.Env {
+		if strings.HasPrefix(entry, "LD_") || strings.HasPrefix(entry, "DYLD_") {
+			t.Fatalf("sandbox wrapper inherited loader control: %q", entry)
+		}
+	}
+	foundSafe := false
+	for _, entry := range command.Env {
+		foundSafe = foundSafe || entry == "SAFE=value"
+	}
+	if !foundSafe {
+		t.Fatalf("safe environment was removed: %#v", command.Env)
+	}
+}
+
 func TestHTTPTransportRefusesCrossOriginRedirectAndOversizedResponse(t *testing.T) {
 	factory := DefaultTransportFactory{
 		MaxResponseBytes: 2,

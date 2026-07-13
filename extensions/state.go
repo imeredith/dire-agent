@@ -15,7 +15,7 @@ func baseEntry(source Source, id, name, root string) Extension {
 		ID: id, Name: name, Root: root, Enabled: source.Enabled, Trust: trust,
 		Process: ProcessSpec{
 			Command: strings.TrimSpace(source.Command), Args: append([]string(nil), source.Args...),
-			Dir: root, Env: cloneStrings(source.Env), InheritEnv: source.InheritEnv,
+			Dir: root, Env: cloneStrings(source.Env), InheritEnv: source.InheritEnv, Sandboxed: source.Sandboxed,
 		},
 	}
 }

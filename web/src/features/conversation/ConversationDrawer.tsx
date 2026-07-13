@@ -1,4 +1,4 @@
-import { Boxes, FileCode2, FolderOpen, ShieldCheck, Trash2, X } from "lucide-react";
+import { Boxes, Braces, FileCode2, FolderOpen, GitBranch, ShieldCheck, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { arraysEqual, mergeModelOptions, shortID, thinkingLevels, usageContextWindow } from "../../lib/display";
 import {
@@ -8,8 +8,10 @@ import {
   type Command,
   type Conversation,
   type ModelInfo,
+  type ProjectSandboxSettings,
   type QueueMode,
   type RuntimeState,
+  type SandboxMode,
 } from "../../lib/protocol";
 import { UsageSummary } from "./UsageSummary";
 import { SubagentPanel } from "./SubagentPanel";
@@ -31,9 +33,13 @@ interface DrawerProps {
   tools: string[];
   subagents: SubagentController;
   capabilityCommands: CapabilityCommandController;
+  projectSandbox: ProjectSandboxSettings | null;
+  projectSandboxLoading: boolean;
   onClose: () => void;
   onUpdate: (command: Omit<Command, "id">, notice?: string) => Promise<Conversation | null>;
   onDelete: (conversation: Conversation) => Promise<void>;
+  onManageEnvironments: (project: Conversation) => void;
+  onProjectSandboxChange: (mode: SandboxMode | "inherit") => Promise<void>;
 }
 
 export function ConversationDrawer(props: DrawerProps) {
@@ -152,12 +158,74 @@ export function ConversationDrawer(props: DrawerProps) {
             {!isChat && (
               <section className="drawer-section">
                 <div className="section-title">
+                  <span>Workspace</span>
+                  <small>{resource.worktree ? "Worktree" : "Local checkout"}</small>
+                </div>
+                <div className="resource-card sandbox-main-folder">
+                  {resource.worktree ? <GitBranch size={15} /> : <FolderOpen size={15} />}
+                  <div>
+                    <strong>{resource.worktree?.path || resource.cwd}</strong>
+                    <small>{resource.worktree ? "Isolated worktree" : "Local project folder"}</small>
+                  </div>
+                </div>
+                {resource.worktree && (
+                  <div className="worktree-metadata">
+                    <div><span>Source project</span><strong>{resource.worktree.source_cwd}</strong></div>
+                    <div><span>Repository</span><strong>{resource.worktree.source_repository}</strong></div>
+                    <div><span>Starting ref</span><strong>{resource.worktree.base_ref || "HEAD"}</strong></div>
+                    <div><span>Base commit</span><strong>{resource.worktree.base_commit}</strong></div>
+                    <div><span>Environment</span><strong>{resource.worktree.environment_id || "None"}</strong></div>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className="secondary-button full-width"
+                  disabled={running}
+                  onClick={() => props.onManageEnvironments(resource)}
+                >
+                  <Braces size={14} /> Manage local environments
+                </button>
+              </section>
+            )}
+
+            {!isChat && (
+              <section className="drawer-section">
+                <div className="section-title">
+                  <span>Process sandbox</span>
+                  <small>{props.projectSandbox?.effective === "off" ? "Disabled" : props.projectSandbox?.effective || "Loading…"}</small>
+                </div>
+                <label className="settings-field">
+                  <span>Policy</span>
+                  <select
+                    aria-label="Process sandbox"
+                    value={props.projectSandbox?.override ?? "inherit"}
+                    disabled={running || props.projectSandboxLoading}
+                    onChange={(event) => void props.onProjectSandboxChange(event.target.value as SandboxMode | "inherit")}
+                  >
+                    <option value="inherit">Use global default ({props.projectSandbox?.global || "strict"})</option>
+                    <option value="strict">Strict</option>
+                    <option value="workspace">Workspace</option>
+                    <option value="off">Disabled</option>
+                  </select>
+                  <small>{props.projectSandbox?.effective === "off"
+                    ? "Local processes run with the daemon user's permissions."
+                    : "This controls bash, local MCP servers, and trusted extension processes."}</small>
+                </label>
+              </section>
+            )}
+
+            {!isChat && (
+              <section className="drawer-section">
+                <div className="section-title">
                   <span>Sandbox folders</span>
                   <small>{1 + (resource.additional_folders?.length ?? 0)} total</small>
                 </div>
                 <div className="resource-card sandbox-main-folder">
                   <FolderOpen size={15} />
-                  <div><strong>{resource.cwd}</strong><small>Main project folder · relative paths start here</small></div>
+                  <div>
+                    <strong>{resource.cwd}</strong>
+                    <small>{resource.worktree ? "Worktree folder" : "Main project folder"} · relative paths start here</small>
+                  </div>
                 </div>
                 <label className="settings-field sandbox-folder-editor">
                   <span>Additional folders</span>
@@ -246,7 +314,7 @@ export function ConversationDrawer(props: DrawerProps) {
               <div><strong>{isChat ? "Pathless chat" : resource.cwd}</strong><small>{shortID(resource.id)} · SQLite persisted</small></div>
             </div>
             <button className="danger-button" disabled={running} onClick={() => void props.onDelete(resource)}>
-              <Trash2 size={14} /> Delete {isChat ? "chat" : "project"} and history
+              <Trash2 size={14} /> Delete {isChat ? "chat" : "project"} and history{resource.worktree ? " · keep worktree · no cleanup" : ""}
             </button>
             {running && <p className="quiet-copy">Controls unlock when the current run settles.</p>}
           </div>
