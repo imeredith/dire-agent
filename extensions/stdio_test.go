@@ -146,6 +146,22 @@ func TestChildEnvironmentIsExplicitByDefault(t *testing.T) {
 	}
 }
 
+func TestSandboxedChildEnvironmentStripsLoaderControls(t *testing.T) {
+	t.Setenv("LD_PRELOAD", "./project-owned.so")
+	environment := processEnvironment(ProcessSpec{
+		Env:        map[string]string{"DYLD_INSERT_LIBRARIES": "./project-owned.dylib", "SAFE": "value"},
+		InheritEnv: true, Sandboxed: true,
+	})
+	for _, entry := range environment {
+		if strings.HasPrefix(entry, "LD_") || strings.HasPrefix(entry, "DYLD_") {
+			t.Fatalf("sandbox wrapper inherited loader control: %q", entry)
+		}
+	}
+	if !containsEnvironment(environment, "SAFE=value") {
+		t.Fatalf("safe environment was removed: %#v", environment)
+	}
+}
+
 func containsEnvironment(values []string, wanted string) bool {
 	for _, value := range values {
 		if value == wanted {

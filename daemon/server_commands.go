@@ -9,6 +9,14 @@ import (
 	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
+// ProjectSandboxSettings reports the global default, the effective value for
+// one project, and the optional project-specific override.
+type ProjectSandboxSettings struct {
+	Global    configuration.SandboxMode  `json:"global"`
+	Effective configuration.SandboxMode  `json:"effective"`
+	Override  *configuration.SandboxMode `json:"override,omitempty"`
+}
+
 func (c *serverClient) handle(command Command) Response {
 	response := Response{ID: command.ID, Type: "response", Command: command.Type, Success: true}
 	fail := func(err error) Response {
@@ -112,6 +120,8 @@ func (c *serverClient) handle(command Command) Response {
 		response.Data, err = c.manager.UpdateSettings(c.ctx, resourceID, SettingsUpdate{Category: &command.Category})
 	case "set_project_sandbox_folders":
 		response.Data, err = c.manager.UpdateSettings(c.ctx, resourceID, SettingsUpdate{AdditionalFolders: &command.AdditionalFolders})
+	case "get_project_sandbox", "set_project_sandbox":
+		response.Data, err = c.handleProjectSandbox(command.Type, resourceID, command.Sandbox)
 	case "set_thinking_level":
 		response.Data, err = c.manager.UpdateSettings(c.ctx, resourceID, SettingsUpdate{ThinkingLevel: &command.Level})
 	case "set_steering_mode":
@@ -136,6 +146,29 @@ func (c *serverClient) handle(command Command) Response {
 		response.Data = map[string]any{"models": c.manager.AvailableModels()}
 	case "get_project_launchers":
 		_, response.Data, err = projectLaunchers(c.ctx, c.manager, c.config, resourceID)
+	case "inspect_project_workspace":
+		response.Data, err = c.manager.InspectProjectWorkspace(c.ctx, resourceID, command.Folder)
+	case "get_project_environments":
+		response.Data, err = c.manager.ProjectEnvironments(c.ctx, resourceID, command.Folder)
+	case "put_project_environment":
+		if command.Environment == nil {
+			err = errors.New("daemon: environment is required")
+			break
+		}
+		environment := *command.Environment
+		if command.EnvironmentID != "" {
+			if environment.ID != "" && environment.ID != command.EnvironmentID {
+				err = errors.New("daemon: environment_id does not match environment.id")
+				break
+			}
+			environment.ID = command.EnvironmentID
+		}
+		response.Data, err = c.manager.PutProjectEnvironment(c.ctx, resourceID, command.Folder, environment, command.ExpectedHash)
+	case "delete_project_environment":
+		err = c.manager.DeleteProjectEnvironment(c.ctx, resourceID, command.Folder, command.EnvironmentID, command.ExpectedHash)
+		if err == nil {
+			response.Data = map[string]any{"deleted": true, "id": command.EnvironmentID}
+		}
 	case "launch_project_app":
 		var launcher configuration.ProjectLauncher
 		launcher, err = launchProjectDesktopApplication(c.ctx, c.manager, c.config, resourceID, command.LauncherID)
@@ -192,6 +225,71 @@ func (c *serverClient) handle(command Command) Response {
 	return response
 }
 
+func (c *serverClient) handleProjectSandbox(commandType, resourceID, requested string) (ProjectSandboxSettings, error) {
+	if c.config == nil {
+		return ProjectSandboxSettings{}, errors.New("daemon: configuration store is unavailable")
+	}
+	scopeID, folder, err := c.projectSandboxTarget(resourceID)
+	if err != nil {
+		return ProjectSandboxSettings{}, err
+	}
+	if commandType == "set_project_sandbox" {
+		mode, modeErr := projectSandboxOverride(requested)
+		if modeErr != nil {
+			return ProjectSandboxSettings{}, modeErr
+		}
+		if _, err = c.config.SetProjectSandbox(c.ctx, scopeID, folder, mode); err != nil {
+			return ProjectSandboxSettings{}, err
+		}
+		// Settings are read as each capability snapshot is built. Refresh idle
+		// conversations so the new policy applies before their next tool call.
+		_ = c.manager.RefreshCapabilities(c.ctx)
+	}
+
+	config, err := c.config.Load(c.ctx)
+	if err != nil {
+		return ProjectSandboxSettings{}, err
+	}
+	state := ProjectSandboxSettings{Global: config.Global.Tools.Sandbox, Effective: config.Global.Tools.Sandbox}
+	if project, exists := config.Projects[scopeID]; exists && project.Settings.Tools != nil && project.Settings.Tools.Sandbox != nil {
+		override := *project.Settings.Tools.Sandbox
+		state.Override = &override
+		state.Effective = override
+	}
+	return state, nil
+}
+
+func (c *serverClient) projectSandboxTarget(resourceID string) (scopeID, folder string, err error) {
+	resource, err := c.manager.Project(c.ctx, resourceID)
+	if err != nil {
+		return "", "", err
+	}
+	if resource.IsSubagent() {
+		return "", "", errors.New("daemon: sandbox policy is only available for top-level projects")
+	}
+	scopeID = configScopeID(resource)
+	folder = resource.CWD
+	if scopeID != resource.ID {
+		if source, sourceErr := c.manager.Project(c.ctx, scopeID); sourceErr == nil {
+			folder = source.CWD
+		}
+	}
+	return scopeID, folder, nil
+}
+
+func projectSandboxOverride(value string) (*configuration.SandboxMode, error) {
+	if value == "inherit" {
+		return nil, nil
+	}
+	mode := configuration.SandboxMode(value)
+	switch mode {
+	case configuration.SandboxStrict, configuration.SandboxWorkspace, configuration.SandboxOff:
+		return &mode, nil
+	default:
+		return nil, errors.New("daemon: sandbox mode must be inherit, strict, workspace, or off")
+	}
+}
+
 func (c *serverClient) handleConfig(command Command, resourceID string) (any, error) {
 	if command.Type != "config_validate" && c.config == nil {
 		return nil, errors.New("daemon: configuration store is unavailable")
@@ -200,7 +298,11 @@ func (c *serverClient) handleConfig(command Command, resourceID string) (any, er
 	case "config_get":
 		return c.config.Load(c.ctx)
 	case "config_effective":
-		settings, found, err := c.config.Effective(c.ctx, resourceID)
+		scopeID := resourceID
+		if resource, resourceErr := c.manager.Thread(c.ctx, resourceID); resourceErr == nil {
+			scopeID = configScopeID(resource)
+		}
+		settings, found, err := c.config.Effective(c.ctx, scopeID)
 		return map[string]any{"settings": settings, "project_override": found}, err
 	case "config_validate":
 		if command.Config == nil {

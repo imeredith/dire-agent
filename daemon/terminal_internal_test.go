@@ -1,12 +1,16 @@
 package daemon
 
 import (
+	"context"
+	"encoding/json"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/dire-kiwi/dire-agent/configuration"
+	"github.com/dire-kiwi/dire-agent/threadstore"
 )
 
 func TestTerminalEnvironmentEnablesTrueColorAndRemovesColorOptOuts(t *testing.T) {
@@ -86,4 +90,101 @@ func TestProjectApplicationEnvironmentReplacesProjectID(t *testing.T) {
 	if values["DIRE_AGENT_PROJECT_ID"] != "project_new" || values["GOAGENT_PROJECT_ID"] != "project_new" || values["OTHER"] != "kept" {
 		t.Fatalf("environment = %#v", environment)
 	}
+}
+
+func TestEnvironmentActionLauncherContract(t *testing.T) {
+	ctx := context.Background()
+	source := canonicalTestDirectory(t, t.TempDir())
+	worktree := canonicalTestDirectory(t, t.TempDir())
+	platform := currentEnvironmentPlatform()
+	otherPlatform := "darwin"
+	if platform == otherPlatform {
+		otherPlatform = "linux"
+	}
+	actionScript := `printf '%s\n%s\n%s\n' "$PWD" "$CODEX_SOURCE_TREE_PATH" "$CODEX_WORKTREE_PATH" > action-result.txt`
+	if platform == "win32" {
+		actionScript = `@($PWD.Path, $env:CODEX_SOURCE_TREE_PATH, $env:CODEX_WORKTREE_PATH) | Set-Content -Path action-result.txt`
+	}
+	saved, err := PutProjectEnvironment(ctx, source, ProjectEnvironment{
+		ID: "environment.toml", Version: 1, Name: "Development", Setup: EnvironmentScript{},
+		Actions: []EnvironmentAction{
+			{Name: "Run managed", Icon: "run", Command: actionScript, Platform: platform},
+			{Name: "Wrong platform", Icon: "debug", Command: "echo must-not-be-exposed", Platform: otherPlatform},
+		},
+	}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	projectID := "project_action_contract"
+	manager := &Manager{runtimes: map[string]*threadRuntime{
+		projectID: {thread: threadstore.Thread{
+			ID: projectID, Kind: threadstore.KindProject, CWD: worktree,
+			Worktree: &threadstore.WorktreeInfo{
+				SourceCWD: source, Path: worktree, EnvironmentID: saved.ID,
+			},
+		}},
+	}}
+
+	_, public, err := projectLaunchers(ctx, manager, nil, projectID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var actionLauncher *configuration.ProjectLauncher
+	for index := range public {
+		switch public[index].ID {
+		case saved.Actions[0].ID:
+			actionLauncher = &public[index]
+		case saved.Actions[1].ID:
+			t.Fatalf("launcher list included action for %s on %s", otherPlatform, platform)
+		}
+	}
+	if actionLauncher == nil {
+		t.Fatalf("launcher list omitted current-platform action: %#v", public)
+	}
+	if actionLauncher.Command != "" || len(actionLauncher.Args) != 0 {
+		t.Fatalf("public launcher exposed server-side action command: %#v", *actionLauncher)
+	}
+	wire, err := json.Marshal(actionLauncher)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(wire), actionScript) || strings.Contains(string(wire), "must-not-be-exposed") {
+		t.Fatalf("public launcher JSON exposed an action command: %s", wire)
+	}
+
+	project, resolved, err := configuredProjectLauncher(ctx, manager, nil, projectID, saved.Actions[0].ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolved.script != actionScript || resolved.launcher.Command != "" {
+		t.Fatalf("server-side launcher resolution = %#v", resolved)
+	}
+	command, err := projectTerminalCommand(ctx, project, resolved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if command.Dir != worktree {
+		t.Fatalf("terminal command cwd = %q, want %q", command.Dir, worktree)
+	}
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("run environment action: %v\n%s", err, output)
+	}
+	result, err := os.ReadFile(filepath.Join(worktree, "action-result.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(strings.ReplaceAll(string(result), "\r\n", "\n")), "\n")
+	want := []string{worktree, source, worktree}
+	if !reflect.DeepEqual(lines, want) {
+		t.Fatalf("action result = %#v, want %#v", lines, want)
+	}
+}
+
+func canonicalTestDirectory(t *testing.T, directory string) string {
+	t.Helper()
+	canonical, err := filepath.EvalSymlinks(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return canonical
 }

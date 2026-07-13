@@ -257,6 +257,7 @@ function ResourceRow(props: {
         <span>
           <strong>{resource.name || (resource.id.startsWith("chat_") ? "Untitled chat" : "Unnamed project")}</strong>
           <small>
+            {resource.worktree ? "Worktree · " : ""}
             {resource.cwd ? `${compactPath(resource.cwd)} · ` : ""}{resource.model} · {relativeTime(resource.updated_at)}
           </small>
         </span>
@@ -302,5 +303,9 @@ function filterResources(resources: Conversation[], query: string): Conversation
     item.id.toLowerCase().includes(query) ||
     item.model.toLowerCase().includes(query) ||
     item.category?.toLowerCase().includes(query) ||
-    item.cwd?.toLowerCase().includes(query));
+    item.cwd?.toLowerCase().includes(query) ||
+    item.worktree?.source_cwd?.toLowerCase().includes(query) ||
+    item.worktree?.source_repository?.toLowerCase().includes(query) ||
+    item.worktree?.base_ref?.toLowerCase().includes(query) ||
+    item.worktree?.environment_id?.toLowerCase().includes(query));
 }

@@ -1,10 +1,11 @@
 import { AppWindow, Command, ExternalLink } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppSidebar, type AppView } from "./components/AppSidebar";
-import { ConnectionDialog, CreateDialog } from "./components/Dialogs";
+import { ConnectionDialog, CreateDialog, type CreateConversationValues } from "./components/Dialogs";
 import { TopBar } from "./components/TopBar";
 import { ConversationDrawer } from "./features/conversation/ConversationDrawer";
 import { ConversationView, type SendMode } from "./features/conversation/ConversationView";
+import { ProjectEnvironmentDialog } from "./features/conversation/ProjectEnvironmentDialog";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { useConversationSession } from "./hooks/useConversationSession";
 import { useCapabilityCommands } from "./hooks/useCapabilityCommands";
@@ -20,6 +21,8 @@ import {
   type Conversation,
   type ImageAttachment,
   type ProjectLauncher,
+  type ProjectSandboxSettings,
+  type SandboxMode,
   type WireEvent,
 } from "./lib/protocol";
 import {
@@ -57,7 +60,11 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [dialog, setDialog] = useState<"chat" | "project" | "connection" | "">("");
+  const [environmentProject, setEnvironmentProject] = useState<Conversation | null>(null);
+  const [environmentRevision, setEnvironmentRevision] = useState(0);
   const [projectLaunchers, setProjectLaunchers] = useState<ProjectLauncher[]>(defaultProjectLaunchers);
+  const [projectSandbox, setProjectSandbox] = useState<ProjectSandboxSettings | null>(null);
+  const [projectSandboxLoading, setProjectSandboxLoading] = useState(false);
   const [openLauncherIDs, setOpenLauncherIDs] = useState<string[]>([]);
   const [activeLauncherID, setActiveLauncherID] = useState("");
   const [busy, setBusy] = useState("");
@@ -74,6 +81,7 @@ function App() {
     [daemon.chats, daemon.projects],
   );
   const selected = conversations.find((item) => item.id === selectedID) ?? null;
+  const selectedProject = selected && conversationKind(selected) === "project" ? selected : null;
   const session = useConversationSession({
     client: daemon.client,
     connection: daemon.status,
@@ -104,7 +112,7 @@ function App() {
     active: view === "settings",
     connectionVersion: daemon.version,
   });
-  const selectedProjectID = selected && conversationKind(selected) === "project" ? selected.id : "";
+  const selectedProjectID = selectedProject?.id || "";
 
   useEffect(() => {
     // The transport reports online before the initial list requests finish.
@@ -153,7 +161,25 @@ function App() {
       if (!cancelled) setProjectLaunchers(defaultProjectLaunchers);
     });
     return () => { cancelled = true; };
-  }, [daemon.client, daemon.status, daemon.version, selectedProjectID, settings.config?.revision]);
+  }, [daemon.client, daemon.status, daemon.version, environmentRevision, selectedProjectID, settings.config?.revision]);
+
+  useEffect(() => {
+    if (!drawerOpen || view !== "conversation" || !selectedProject || daemon.status !== "online" || !daemon.client?.isOpen) {
+      setProjectSandbox(null);
+      setProjectSandboxLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setProjectSandboxLoading(true);
+    void daemon.client.getProjectSandbox(selectedProject).then((next) => {
+      if (!cancelled) setProjectSandbox(next);
+    }).catch(() => {
+      if (!cancelled) setProjectSandbox(null);
+    }).finally(() => {
+      if (!cancelled) setProjectSandboxLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [daemon.client, daemon.status, daemon.version, drawerOpen, selectedProject?.id, view]);
 
   useEffect(() => {
     const available = new Set(projectLaunchers.map((launcher) => launcher.id));
@@ -180,6 +206,20 @@ function App() {
       return false;
     }
   }, [daemon.client, notify, selected]);
+
+  const updateProjectSandbox = useCallback(async (mode: SandboxMode | "inherit") => {
+    if (!selectedProject || !daemon.client?.isOpen) return;
+    setProjectSandboxLoading(true);
+    try {
+      const next = await daemon.client.setProjectSandbox(selectedProject, mode);
+      setProjectSandbox(next);
+      notify(mode === "off" ? "Sandbox disabled for this project" : "Project sandbox policy updated");
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Could not update the project sandbox policy");
+    } finally {
+      setProjectSandboxLoading(false);
+    }
+  }, [daemon.client, notify, selectedProject]);
 
   const toggleLauncher = useCallback((launcher: ProjectLauncher) => {
     if (daemon.status !== "online" || !selectedProjectID) return;
@@ -219,7 +259,7 @@ function App() {
     setDrawerOpen(false);
   };
 
-  const createConversation = async (values: { name: string; cwd?: string; category?: string; additionalFolders?: string[] }) => {
+  const createConversation = async (values: CreateConversationValues) => {
     if (!daemon.client?.isOpen) return;
     setBusy("create");
     try {
@@ -229,6 +269,16 @@ function App() {
           cwd: values.cwd,
           category: values.category,
           additional_folders: values.additionalFolders,
+          worktree: values.worktree ? {
+            base_ref: values.worktree.baseRef,
+            environment_id: values.worktree.environmentID,
+            source_project_id: selected &&
+              conversationKind(selected) === "project" &&
+              (selected.worktree?.source_cwd || selected.cwd) ===
+                (values.worktree.sourceFolder || values.cwd)
+              ? selected.id
+              : undefined,
+          } : undefined,
         })
         : await daemon.client.createChat({ name: values.name });
       const canonical: Conversation = {
@@ -249,7 +299,10 @@ function App() {
   };
 
   const deleteConversation = useCallback(async (resource: Conversation) => {
-    if (!window.confirm(`Delete “${resource.name || resource.id}” and its history?`)) return;
+    const preserved = resource.worktree
+      ? ` The worktree checkout at ${resource.worktree.path || resource.cwd} will be preserved, and cleanup scripts will not run.`
+      : "";
+    if (!window.confirm(`Delete “${resource.name || resource.id}” and its history?${preserved}`)) return;
     if (!daemon.client?.isOpen) return;
     setBusy("delete");
     try {
@@ -475,9 +528,13 @@ function App() {
         tools={daemon.tools}
         subagents={subagents}
         capabilityCommands={capabilityCommands}
+        projectSandbox={projectSandbox}
+        projectSandboxLoading={projectSandboxLoading}
         onClose={() => setDrawerOpen(false)}
         onUpdate={session.update}
         onDelete={deleteConversation}
+        onManageEnvironments={(project) => setEnvironmentProject(project)}
+        onProjectSandboxChange={updateProjectSandbox}
       />
 
       {(dialog === "chat" || dialog === "project") && (
@@ -488,6 +545,19 @@ function App() {
           initialCategory={readAppStorage("project.category") || ""}
           onClose={() => setDialog("")}
           onCreate={createConversation}
+          onInspectWorkspace={(folder) => {
+            if (!daemon.client?.isOpen) return Promise.reject(new Error("Daemon is not connected"));
+            return daemon.client.inspectProjectWorkspace(folder);
+          }}
+        />
+      )}
+      {environmentProject && daemon.client?.isOpen && (
+        <ProjectEnvironmentDialog
+          client={daemon.client}
+          project={environmentProject}
+          onClose={() => setEnvironmentProject(null)}
+          onNotice={notify}
+          onChanged={() => setEnvironmentRevision((current) => current + 1)}
         />
       )}
       {dialog === "connection" && (

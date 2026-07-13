@@ -63,8 +63,12 @@ export function GeneralSettings({ value, onChange }: GeneralSettingsProps) {
               onChange={(event) => change("tools", { ...value.tools, enabled: parseList(event.target.value) })}
             />
           </Field>
-          <Field label="Sandbox">
-            <select value={value.tools.sandbox} onChange={(event) => change("tools", { ...value.tools, sandbox: event.target.value as GlobalSettings["tools"]["sandbox"] })}>
+          <Field label="Process sandbox default" hint="Off disables the native process sandbox for projects that inherit this global default.">
+            <select
+              aria-label="Process sandbox default"
+              value={value.tools.sandbox}
+              onChange={(event) => change("tools", { ...value.tools, sandbox: event.target.value as GlobalSettings["tools"]["sandbox"] })}
+            >
               <option value="strict">Strict</option><option value="workspace">Workspace</option><option value="off">Off</option>
             </select>
           </Field>

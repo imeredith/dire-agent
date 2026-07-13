@@ -160,14 +160,18 @@ func mcpConfigs(scope Scope, settings configuration.Settings) ([]mcpclient.Serve
 			config.Transport = mcpclient.TransportStdio
 			if server.Enabled && settings.Tools.Sandbox != configuration.SandboxOff {
 				workspace := scope.CWD
+				privateWorkspace := false
 				if workspace == "" {
 					workspace = os.TempDir()
 					config.WorkingDirectory = workspace
+					privateWorkspace = true
 				}
 				command, args, err := localtools.WrapSandboxedProcess(localtools.ProcessSandbox{
-					Workspace: workspace, Command: config.Command, Args: config.Arguments,
+					Workspace: workspace, WorkingDirectory: config.WorkingDirectory,
+					Command: config.Command, Args: config.Arguments,
 					AdditionalWritePaths: scope.AdditionalFolders,
 					AllowNetwork:         settings.Tools.Sandbox == configuration.SandboxWorkspace,
+					PrivateWorkspace:     privateWorkspace,
 				})
 				if err != nil {
 					denied = append(denied, Descriptor{
@@ -177,6 +181,7 @@ func mcpConfigs(scope Scope, settings configuration.Settings) ([]mcpclient.Serve
 					continue
 				}
 				config.Command, config.Arguments = command, args
+				config.Sandboxed = true
 			}
 		} else {
 			config.Transport = mcpclient.TransportStreamableHTTP

@@ -10,6 +10,9 @@ import type {
   DaemonConfig,
   ModelInfo,
   ProjectLauncher,
+  ProjectEnvironment,
+  ProjectSandboxSettings,
+  ProjectWorkspaceInspection,
   RuntimeState,
   SpawnAgentOptions,
   StoredEvent,
@@ -52,6 +55,17 @@ function capabilityFixture(): CapabilityState {
     skill_diagnostics: [],
   };
 }
+
+export const environmentFixture: ProjectEnvironment = {
+  id: "environment.toml",
+  config_path: "/workspace/.codex/environments/environment.toml",
+  hash: "environment-hash-1",
+  version: 1,
+  name: "Development",
+  setup: { script: "npm install", darwin: { script: "npm install --prefer-offline" } },
+  cleanup: { script: "" },
+  actions: [{ id: "action-test", name: "Test", icon: "test", command: "npm test" }],
+};
 
 export function configFixture(): DaemonConfig {
   return {
@@ -118,6 +132,10 @@ export const mockState = {
   capabilityCommandResult: { output: "" } as CapabilityCommandResult,
   capabilityCommandError: "",
   capabilities: capabilityFixture(),
+  environments: [] as ProjectEnvironment[],
+  workspaceInspections: {} as Record<string, ProjectWorkspaceInspection>,
+  projectSandbox: { global: "strict", effective: "strict" } as ProjectSandboxSettings,
+  createProjectWaiter: null as Promise<void> | null,
 };
 
 export function resetMockDaemon() {
@@ -135,6 +153,10 @@ export function resetMockDaemon() {
   mockState.capabilityCommandResult = { output: "" };
   mockState.capabilityCommandError = "";
   mockState.capabilities = capabilityFixture();
+  mockState.environments = [];
+  mockState.workspaceInspections = {};
+  mockState.projectSandbox = { global: "strict", effective: "strict" };
+  mockState.createProjectWaiter = null;
 }
 
 export class MockDaemonClient {
@@ -164,6 +186,69 @@ export class MockDaemonClient {
     this.record({ type: "get_project_launchers", ...conversationScope(project) });
     return structuredClone(mockState.config.global.launchers ?? []);
   }
+  async getProjectSandbox(project: Conversation): Promise<ProjectSandboxSettings> {
+    this.record({ type: "get_project_sandbox", ...conversationScope(project) });
+    return structuredClone(mockState.projectSandbox);
+  }
+  async setProjectSandbox(project: Conversation, sandbox: ProjectSandboxSettings["effective"] | "inherit"): Promise<ProjectSandboxSettings> {
+    this.record({ type: "set_project_sandbox", ...conversationScope(project), sandbox });
+    const override = sandbox === "inherit" ? undefined : sandbox;
+    mockState.projectSandbox = {
+      global: mockState.config.global.tools.sandbox,
+      effective: override ?? mockState.config.global.tools.sandbox,
+      ...(override ? { override } : {}),
+    };
+    return structuredClone(mockState.projectSandbox);
+  }
+  async inspectProjectWorkspace(folder: string): Promise<ProjectWorkspaceInspection> {
+    this.record({ type: "inspect_project_workspace", folder });
+    return structuredClone(mockState.workspaceInspections[folder] ?? {
+      folder,
+      git_repository: true,
+      repository_root: folder,
+      head: "abc123",
+      current_branch: "main",
+      branches: ["main"],
+      environments: mockState.environments,
+    });
+  }
+  async getProjectEnvironments(scope: string | Conversation): Promise<ProjectEnvironment[]> {
+    this.record({ type: "get_project_environments", ...environmentScope(scope) });
+    return structuredClone(mockState.environments);
+  }
+  async putProjectEnvironment(
+    scope: string | Conversation,
+    environment: ProjectEnvironment,
+    expectedHash?: string,
+  ): Promise<ProjectEnvironment> {
+    this.record({
+      type: "put_project_environment",
+      ...environmentScope(scope),
+      environment_id: environment.id,
+      environment,
+      expected_hash: expectedHash,
+    });
+    const saved = {
+      ...structuredClone(environment),
+      config_path: `/workspace/.codex/environments/${environment.id}`,
+      hash: `environment-hash-${mockState.environments.length + 1}`,
+      actions: environment.actions.map((action, index) => ({ ...action, id: action.id || `action-${index + 1}` })),
+    };
+    mockState.environments = [
+      ...mockState.environments.filter((current) => current.id !== saved.id),
+      saved,
+    ];
+    return structuredClone(saved);
+  }
+  async deleteProjectEnvironment(scope: string | Conversation, environmentID: string, expectedHash?: string) {
+    this.record({
+      type: "delete_project_environment",
+      ...environmentScope(scope),
+      environment_id: environmentID,
+      expected_hash: expectedHash,
+    });
+    mockState.environments = mockState.environments.filter((environment) => environment.id !== environmentID);
+  }
   async launchProjectApp(project: Conversation, launcherID: string) {
     this.record({ type: "launch_project_app", ...conversationScope(project), launcher_id: launcherID });
     const launcher = mockState.config.global.launchers?.find((item) => item.id === launcherID);
@@ -171,12 +256,24 @@ export class MockDaemonClient {
   }
   async createProject(options: CreateProjectOptions) {
     this.record({ type: "create_project", options });
+    await mockState.createProjectWaiter;
     const project = {
       ...projectFixture,
       name: options.name,
       category: options.category,
-      cwd: options.cwd || "/workspace",
+      cwd: options.worktree ? "/worktrees/project_web_test" : options.cwd || "/workspace",
       additional_folders: options.additional_folders ?? [],
+      ...(options.worktree ? {
+        settings_id: options.worktree.source_project_id || "project_web_test",
+        worktree: {
+          source_cwd: options.cwd || "/workspace",
+          source_repository: options.cwd || "/workspace",
+          path: "/worktrees/project_web_test",
+          base_ref: options.worktree.base_ref || "HEAD",
+          base_commit: "abc123",
+          environment_id: options.worktree.environment_id,
+        },
+      } : {}),
     };
     mockState.projects = [project, ...mockState.projects];
     return project;
@@ -330,4 +427,8 @@ export class MockDaemonClient {
     mockState.chats = mockState.chats.map((item) => item.id === value.id ? value : item);
     mockState.projects = mockState.projects.map((item) => item.id === value.id ? value : item);
   }
+}
+
+function environmentScope(scope: string | Conversation) {
+  return typeof scope === "string" ? { folder: scope } : conversationScope(scope);
 }

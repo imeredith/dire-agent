@@ -245,5 +245,9 @@ func cloneThread(input threadstore.Thread) threadstore.Thread {
 	thread.Tools = append([]string(nil), thread.Tools...)
 	thread.AdditionalFolders = append([]string(nil), thread.AdditionalFolders...)
 	thread.MCPServerOverrides = cloneBoolMap(thread.MCPServerOverrides)
+	if thread.Worktree != nil {
+		copy := *thread.Worktree
+		thread.Worktree = &copy
+	}
 	return thread
 }

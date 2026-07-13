@@ -57,6 +57,7 @@ type Source struct {
 	Args       []string          `json:"args,omitempty"`
 	Env        map[string]string `json:"env,omitempty"`
 	InheritEnv bool              `json:"inherit_env,omitempty"`
+	Sandboxed  bool              `json:"-"`
 }
 
 type DiscoverOptions struct {
@@ -106,6 +107,7 @@ type ProcessSpec struct {
 	Dir        string            `json:"dir,omitempty"`
 	Env        map[string]string `json:"env,omitempty"`
 	InheritEnv bool              `json:"inherit_env,omitempty"`
+	Sandboxed  bool              `json:"-"`
 }
 
 type LaunchConfig struct {

@@ -9,7 +9,10 @@ import type {
   DaemonConfig,
   ModelInfo,
   Project,
+  ProjectEnvironment,
   ProjectLauncher,
+  ProjectSandboxSettings,
+  ProjectWorkspaceInspection,
   RuntimeState,
   StoredEvent,
   StoredMessage,
@@ -43,7 +46,53 @@ export class DaemonClient extends DaemonTransport {
   }
 
   createProject(options: CreateProjectOptions): Promise<Project> {
-    return this.request<Project>({ type: "create_project", options });
+    // Setup itself may consume ten minutes; leave room for checkout and
+    // publication so the UI cannot time out while the daemon is still finishing.
+    return this.request<Project>({ type: "create_project", options }, 15 * 60_000);
+  }
+
+  inspectProjectWorkspace(folder: string): Promise<ProjectWorkspaceInspection> {
+    return this.request<ProjectWorkspaceInspection>({ type: "inspect_project_workspace", folder })
+      .then((value) => ({
+        ...value,
+        branches: value.branches ?? [],
+        environments: (value.environments ?? []).map(normalizeProjectEnvironment),
+      }));
+  }
+
+  async getProjectEnvironments(scope: string | Conversation): Promise<ProjectEnvironment[]> {
+    const value = await this.request<ProjectEnvironment[] | { environments?: ProjectEnvironment[] | null }>({
+      type: "get_project_environments",
+      ...projectEnvironmentScope(scope),
+    });
+    return (Array.isArray(value) ? value : value.environments ?? []).map(normalizeProjectEnvironment);
+  }
+
+  putProjectEnvironment(
+    scope: string | Conversation,
+    environment: ProjectEnvironment,
+    expectedHash?: string,
+  ): Promise<ProjectEnvironment> {
+    return this.request<ProjectEnvironment>({
+      type: "put_project_environment",
+      ...projectEnvironmentScope(scope),
+      environment_id: environment.id,
+      environment,
+      expected_hash: expectedHash,
+    }).then(normalizeProjectEnvironment);
+  }
+
+  deleteProjectEnvironment(
+    scope: string | Conversation,
+    environmentID: string,
+    expectedHash?: string,
+  ): Promise<{ deleted: boolean; id: string }> {
+    return this.request<{ deleted: boolean; id: string }>({
+      type: "delete_project_environment",
+      ...projectEnvironmentScope(scope),
+      environment_id: environmentID,
+      expected_hash: expectedHash,
+    });
   }
 
   createChat(options: CreateChatOptions): Promise<Chat> {
@@ -98,10 +147,18 @@ export class DaemonClient extends DaemonTransport {
   }
 
   getCapabilities(conversation: Conversation): Promise<CapabilityState> {
-    return this.request<CapabilityState>({
+    return this.request<{
+      capabilities?: CapabilityState["capabilities"] | null;
+      skills?: CapabilityState["skills"] | null;
+      skill_diagnostics?: CapabilityState["skill_diagnostics"] | null;
+    } | null>({
       type: "get_capabilities",
       ...conversationScope(conversation),
-    });
+    }).then((value) => ({
+      capabilities: value?.capabilities ?? [],
+      skills: value?.skills ?? [],
+      skill_diagnostics: value?.skill_diagnostics ?? [],
+    }));
   }
 
   listCapabilityCommands(conversation: Conversation): Promise<CapabilityCommandInfo[]> {
@@ -139,6 +196,21 @@ export class DaemonClient extends DaemonTransport {
       type: "get_project_launchers",
       ...conversationScope(project),
     }).then((value) => value ?? []);
+  }
+
+  getProjectSandbox(project: Conversation): Promise<ProjectSandboxSettings> {
+    return this.request<ProjectSandboxSettings>({
+      type: "get_project_sandbox",
+      ...conversationScope(project),
+    });
+  }
+
+  setProjectSandbox(project: Conversation, sandbox: ProjectSandboxSettings["effective"] | "inherit"): Promise<ProjectSandboxSettings> {
+    return this.request<ProjectSandboxSettings>({
+      type: "set_project_sandbox",
+      ...conversationScope(project),
+      sandbox,
+    });
   }
 
   launchProjectApp(project: Conversation, launcherID: string): Promise<{ launched: boolean; id: string; label?: string }> {
@@ -239,6 +311,14 @@ export class DaemonClient extends DaemonTransport {
       timeout_ms: timeoutMs,
     }, timeoutMs + 5_000);
   }
+}
+
+function projectEnvironmentScope(scope: string | Conversation) {
+  return typeof scope === "string" ? { folder: scope } : conversationScope(scope);
+}
+
+function normalizeProjectEnvironment(environment: ProjectEnvironment): ProjectEnvironment {
+  return { ...environment, actions: environment.actions ?? [] };
 }
 
 export function unsupported(error: unknown): boolean {
