@@ -524,7 +524,9 @@ Thinking levels are `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, and
 `get_available_models` returns `{provider,id,context_window?}` records. The
 default Codex registry contains `gpt-5.6`, `gpt-5.6-sol`, `gpt-5.6-terra`,
 `gpt-5.6-luna`, and `gpt-5.4`. The direct subscription provider maps the
-`gpt-5.6` alias to `gpt-5.6-sol` on the wire.
+`gpt-5.6` alias to `gpt-5.6-sol` on the wire. When OpenRouter is active, its
+configured organization-qualified model (for example `openrouter/auto`) is
+reported with provider `openrouter`.
 
 `get_capabilities` returns the effective descriptor catalog, discovered skills,
 and skill diagnostics. Sources include built-ins, trusted skills, MCP tools,
@@ -584,6 +586,13 @@ Secret MCP/extension environment values and MCP headers are returned as
 preserve the previous secrets. A stale revision fails rather than overwriting a
 concurrent edit. Successful updates increment the revision and refresh idle
 capability snapshots.
+
+`global.model.provider` accepts `codex` or `openrouter`. Provider changes are
+daemon-wide and require restart; the daemon rejects new conversation creation
+while the saved provider differs from the active provider. OpenRouter reads
+`OPENROUTER_API_KEY` only from the daemon environment, so the key is never part
+of this protocol or configuration document. OpenRouter model IDs must be
+organization-qualified slugs such as `openrouter/auto`.
 
 `config_validate` validates a complete candidate without persisting it.
 `config_effective` accepts a conversation ID and returns
@@ -668,7 +677,9 @@ Each project, standalone chat, and child agent owns `<id>.db`. Provider state is
 restored lazily after restart; a conversation recorded as running after an
 unclean shutdown recovers as idle. Messages, events, usage, and tool records
 remain queryable when no client was connected. Existing `thread_*.db` files
-remain valid. Deleting a successfully published managed-worktree project
+remain valid. Session state is provider-specific; after a daemon-wide provider
+change, conversations created with the previous provider can be resumed by
+switching back to it. Deleting a successfully published managed-worktree project
 removes its conversation history but deliberately preserves the checkout and
 its Git worktree registration. Only an unpublished worktree whose creation
 fails is automatically force-rolled back.

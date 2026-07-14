@@ -74,6 +74,9 @@ func (m *Manager) runtimeFromDB(ctx context.Context, db *threadstore.ThreadDB, t
 	}
 	var session agent.Session
 	if state == nil {
+		if err := m.validateActiveModel(thread.Model); err != nil {
+			return nil, err
+		}
 		session, err = m.config.Provider.OpenSession(ctx, options)
 	} else {
 		session, err = m.config.Provider.OpenSessionFromState(ctx, options, agent.SessionState{
@@ -81,6 +84,9 @@ func (m *Manager) runtimeFromDB(ctx context.Context, db *threadstore.ThreadDB, t
 		})
 	}
 	if err != nil {
+		return nil, err
+	}
+	if err := m.validateActiveModel(thread.Model); err != nil {
 		return nil, err
 	}
 	stepSession, ok := session.(agent.StepSession)

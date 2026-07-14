@@ -10,17 +10,43 @@ interface GeneralSettingsProps {
 export function GeneralSettings({ value, onChange }: GeneralSettingsProps) {
   const change = <K extends keyof GlobalSettings>(key: K, next: GlobalSettings[K]) =>
     onChange({ ...value, [key]: next });
+  const changeProvider = (provider: string) => {
+    const normalized = provider.trim().toLowerCase();
+    let model = value.model.id;
+    let standaloneModel = value.standalone_chat.model;
+    if (normalized === "openrouter") {
+      if (!model.includes("/")) model = "openrouter/auto";
+      if (!standaloneModel.includes("/")) standaloneModel = model;
+    } else if (normalized === "codex") {
+      if (model.includes("/")) model = "gpt-5.6";
+      if (standaloneModel.includes("/")) standaloneModel = model;
+    }
+    onChange({
+      ...value,
+      model: { ...value.model, provider, id: model, context_window: 0 },
+      standalone_chat: { ...value.standalone_chat, model: standaloneModel },
+    });
+  };
+  const modelSuggestions = value.model.provider.trim().toLowerCase() === "openrouter"
+    ? ["openrouter/auto"]
+    : firstPartyModels;
   return (
     <>
       <SettingsSection
         id="general"
         eyebrow="DEFAULTS"
         title="Model and reasoning"
-        description="These defaults apply to new projects unless a conversation overrides them."
+        description="These defaults apply to new projects unless a conversation overrides them. Provider changes take effect after the daemon restarts."
       >
         <div className="settings-grid three">
           <Field label="Provider">
-            <input value={value.model.provider} onChange={(event) => change("model", { ...value.model, provider: event.target.value })} />
+            <select
+              value={value.model.provider}
+              onChange={(event) => changeProvider(event.target.value)}
+            >
+              <option value="codex">Codex subscription</option>
+              <option value="openrouter">OpenRouter</option>
+            </select>
           </Field>
           <Field label="Model">
             <input
@@ -28,7 +54,7 @@ export function GeneralSettings({ value, onChange }: GeneralSettingsProps) {
               value={value.model.id}
               onChange={(event) => change("model", { ...value.model, id: event.target.value })}
             />
-            <datalist id="model-options">{firstPartyModels.map((model) => <option value={model} key={model} />)}</datalist>
+            <datalist id="model-options">{modelSuggestions.map((model) => <option value={model} key={model} />)}</datalist>
           </Field>
           <Field label="Context window" hint="Tokens; use 0 when unknown.">
             <input

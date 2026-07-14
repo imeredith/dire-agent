@@ -26,6 +26,12 @@ func (m *Manager) UpdateSettings(ctx context.Context, id string, update Settings
 		runtime.mu.Unlock()
 		return threadstore.Thread{}, errors.New("daemon: model must not be empty")
 	}
+	if update.Model != nil {
+		if err := m.validateActiveModel(*update.Model); err != nil {
+			runtime.mu.Unlock()
+			return threadstore.Thread{}, err
+		}
+	}
 	var category string
 	if update.Category != nil {
 		if runtime.thread.ResourceKind() != threadstore.KindProject || runtime.thread.IsSubagent() {

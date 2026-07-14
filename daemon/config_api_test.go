@@ -46,6 +46,7 @@ func TestConfigurationWebSocketLifecycleAndDefaults(t *testing.T) {
 	manager, err := daemon.NewManager(daemon.ManagerConfig{
 		Store: store, Provider: &fakeProvider{}, DefaultCWD: root,
 		DefaultModel: "fallback", Settings: configStore, Capabilities: registry,
+		SupportedProviders: []string{"codex", "openrouter"},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -66,6 +67,20 @@ func TestConfigurationWebSocketLifecycleAndDefaults(t *testing.T) {
 	}
 	if got := public.Global.MCP.Servers["remote"].Headers["Authorization"]; got != configuration.RedactedValue {
 		t.Fatalf("configuration leaked credential: %q", got)
+	}
+	unsupported := public
+	unsupported.Global.Model.Provider = "openroute"
+	if err := api.ValidateConfig(ctx, unsupported); err == nil || !strings.Contains(err.Error(), "unsupported") {
+		t.Fatalf("unsupported provider validation error = %v", err)
+	}
+	invalidOpenRouter := public
+	invalidOpenRouter.Global.Model.Provider = "openrouter"
+	invalidOpenRouter.Global.Model.ID = "openrouter//auto"
+	if err := api.ValidateConfig(ctx, invalidOpenRouter); err == nil || !strings.Contains(err.Error(), "organization-qualified") {
+		t.Fatalf("invalid OpenRouter model validation error = %v", err)
+	}
+	if _, err := api.UpdateConfig(ctx, unsupported); err == nil || !strings.Contains(err.Error(), "unsupported") {
+		t.Fatalf("unsupported provider update error = %v", err)
 	}
 	stale := public
 	public.Global.Model.ID = "configured-model"

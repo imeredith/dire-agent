@@ -11,6 +11,10 @@ codex login
 go run ./cmd/dire-agent daemon
 ```
 
+For OpenRouter, set `OPENROUTER_API_KEY`, choose `openrouter` plus an
+organization-qualified model in Settings, and restart the daemon. Codex remains
+the default and uses `codex login` credentials.
+
 In another terminal:
 
 ```sh
@@ -96,10 +100,10 @@ turn it off; exposing it from a non-loopback daemon requires the explicit
   WebSockets; persist complete reasoning and tool input/output cards.
 - Prompt, steer, queue follow-ups, and abort active runs.
 - See cumulative input, output, cache-read, and provider-reported cache-write
-  tokens plus current context utilization and percentage. Luna uses the
-  installed Codex catalog's 372,000-token context window.
-- Choose a model from a dropdown containing `gpt-5.6`, `gpt-5.6-sol`,
-  `gpt-5.6-terra`, `gpt-5.6-luna`, and models discovered from the daemon.
+  tokens plus current context utilization and percentage.
+- Choose a model from the active daemon provider's model registry. Codex
+  includes its GPT-5.6 variants; OpenRouter accepts organization-qualified
+  model slugs such as `openrouter/auto`.
 - Configure thinking level, tool access, and queue behavior per conversation.
   GPT-5.6 reasoning levels include `none`, `minimal`, `low`, `medium`, `high`,
   `xhigh`, and `max`; `off` remains available for older daemon/model setups.

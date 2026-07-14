@@ -64,8 +64,19 @@ func (m *Manager) CreateThread(ctx context.Context, options CreateThreadOptions)
 	if err != nil {
 		return threadstore.Thread{}, err
 	}
+	if !m.config.OverrideModelDefaults {
+		if err := m.requireActiveProvider(settings.Model.Provider); err != nil {
+			return threadstore.Thread{}, err
+		}
+	}
+	if options.Model == "" && m.config.OverrideModelDefaults {
+		options.Model = m.config.DefaultModel
+	}
 	if options.Model == "" {
 		options.Model = firstNonEmpty(settings.Model.ID, m.config.DefaultModel)
+	}
+	if err := m.validateActiveModel(options.Model); err != nil {
+		return threadstore.Thread{}, err
 	}
 	var worktree *threadstore.WorktreeInfo
 	var rollbackWorktree func() error
@@ -194,8 +205,22 @@ func (m *Manager) CreateChat(ctx context.Context, options CreateChatOptions) (th
 	if err != nil {
 		return threadstore.Chat{}, err
 	}
+	if !m.config.OverrideModelDefaults {
+		if err := m.requireActiveProvider(settings.Model.Provider); err != nil {
+			return threadstore.Chat{}, err
+		}
+	}
+	if options.Model == "" && m.config.OverrideModelDefaults {
+		options.Model = m.config.DefaultModel
+	}
 	if options.Model == "" {
-		options.Model = firstNonEmpty(settings.StandaloneChat.Model, settings.Model.ID, m.config.DefaultModel)
+		options.Model = strings.TrimSpace(settings.StandaloneChat.Model)
+		if m.validateActiveModel(options.Model) != nil {
+			options.Model = firstNonEmpty(settings.Model.ID, m.config.DefaultModel)
+		}
+	}
+	if err := m.validateActiveModel(options.Model); err != nil {
+		return threadstore.Chat{}, err
 	}
 	if options.ThinkingLevel == "" {
 		options.ThinkingLevel = firstNonEmpty(string(settings.StandaloneChat.Thinking), string(settings.Thinking.Level), m.config.DefaultThinking)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"strings"
 	"testing"
 )
@@ -69,5 +70,24 @@ func TestSameVersionIgnoresVPrefix(t *testing.T) {
 	}
 	if sameVersion("dev", "v1.2.3") {
 		t.Fatal("sameVersion accepted different versions")
+	}
+}
+
+func TestAskOpenRouterProviderDefaults(t *testing.T) {
+	t.Setenv("OPENROUTER_API_KEY", "test-key")
+	provider, model, err := newAskProvider(context.Background(), "openrouter", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer provider.Close()
+	if model != "openrouter/auto" {
+		t.Fatalf("model = %q", model)
+	}
+}
+
+func TestAskRejectsUnknownProvider(t *testing.T) {
+	t.Parallel()
+	if _, _, err := newAskProvider(context.Background(), "unknown", "model", ""); err == nil {
+		t.Fatal("newAskProvider accepted an unknown provider")
 	}
 }

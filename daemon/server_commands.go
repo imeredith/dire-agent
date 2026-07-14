@@ -365,6 +365,9 @@ func (c *serverClient) handleConfig(command Command, resourceID string) (any, er
 			return nil, errors.New("daemon: config is required")
 		}
 		err := configuration.Validate(*command.Config)
+		if err == nil {
+			err = c.manager.validateConfigProviders(*command.Config)
+		}
 		return map[string]bool{"valid": err == nil}, err
 	case "config_update":
 		if command.Config == nil {
@@ -373,6 +376,9 @@ func (c *serverClient) handleConfig(command Command, resourceID string) (any, er
 		revision := command.ExpectedRevision
 		if revision == 0 {
 			revision = command.Config.Revision
+		}
+		if err := c.manager.validateConfigProviders(*command.Config); err != nil {
+			return nil, err
 		}
 		updated, err := c.config.Update(c.ctx, revision, *command.Config)
 		if err == nil {

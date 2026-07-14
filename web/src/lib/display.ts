@@ -79,7 +79,10 @@ export function arraysEqual(left: string[], right: string[]): boolean {
 
 export function mergeModelOptions(models: ModelInfo[], selected?: string): ModelInfo[] {
   const options = new Map<string, ModelInfo>();
-  for (const id of firstPartyModels) options.set(id, { id, provider: "OpenAI" });
+  const openRouterActive = models.some((model) => model.provider?.toLowerCase() === "openrouter");
+  if (!openRouterActive) {
+    for (const id of firstPartyModels) options.set(id, { id, provider: "OpenAI" });
+  }
   for (const model of models) {
     if (model?.id) options.set(model.id, { ...options.get(model.id), ...model });
   }

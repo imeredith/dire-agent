@@ -7,8 +7,10 @@ conversations. It supports two conversation scopes:
   local tools inside that folder.
 - **Standalone chats** have no folder and no local file or shell tools.
 
-The Codex provider calls the ChatGPT/Codex subscription endpoint directly with
-credentials created by `codex login`. It does **not** invoke Codex CLI or use
+Dire Agent can use either a ChatGPT/Codex subscription or OpenRouter. The Codex
+provider calls the subscription endpoint directly with credentials created by
+`codex login`; the OpenRouter provider uses its public, OpenAI-compatible
+Responses API with an API key. Neither path invokes Codex CLI or uses
 `codex app-server`. Provider-neutral interfaces keep model transports separate
 from storage, tools, the agent loop, and clients.
 
@@ -18,6 +20,8 @@ from storage, tools, the agent loop, and clients.
   agentic tool loop.
 - Direct Codex HTTP/SSE transport with credential refresh and GPT-5.6 model
   selection.
+- OpenRouter HTTP/SSE transport with arbitrary organization-qualified model
+  slugs, tool calls, images, reasoning events, and persistent stateless history.
 - Cumulative input, output, cache-read, provider-reported cache-write,
   total-token, and current-context accounting.
 - One WAL-enabled SQLite file per project, standalone chat, and child agent,
@@ -149,6 +153,24 @@ codex login
 dire-agent
 ```
 
+Codex remains the default provider. To use OpenRouter, open **Settings → Model
+and reasoning**, set the provider to `openrouter` and the model to an
+organization-qualified slug such as `openrouter/auto`, and save. Then restart
+the daemon with the key in its environment:
+
+```sh
+dire-agent stop
+export OPENROUTER_API_KEY="your-key"
+dire-agent start
+dire-agent
+```
+
+Keep the key in an environment variable or secret manager; do not add it to
+the configuration file or commit it. Provider changes are daemon-wide and take
+effect only after restart. Persisted sessions are provider-specific, so switch
+back to their original provider to resume conversations created before a
+provider change.
+
 Running `dire-agent` starts its background daemon if necessary and opens the
 terminal UI for the current folder. A trailing message becomes the initial
 prompt. Lifecycle and update commands are:
@@ -180,8 +202,9 @@ Defaults:
 - conversation databases: `~/.dire-agent/projects`
 - managed worktrees: `~/.dire-agent/worktrees`
 - configuration: `~/.dire-agent/config.json`
-- model: `gpt-5.6`
-- credentials: `$CODEX_HOME/auth.json` or `~/.codex/auth.json`
+- provider/model: `codex` / `gpt-5.6`
+- Codex credentials: `$CODEX_HOME/auth.json` or `~/.codex/auth.json`
+- OpenRouter credentials: `OPENROUTER_API_KEY`
 
 If the projects directory is absent but `~/.dire-agent/threads` exists, the daemon
 uses the legacy directory so existing histories remain visible. The convenient
@@ -198,6 +221,8 @@ Override the main paths and project defaults with flags:
 
 ```sh
 go run ./cmd/dire-agent daemon \
+  -provider openrouter \
+  -model openrouter/auto \
   -data-dir ./agent-data \
   -worktree-root ./agent-worktrees \
   -config ./dire-agent.json \
@@ -295,6 +320,12 @@ appear as user-operated terminal tabs. Local projects expose actions from
 every environment in their source/project folder; managed worktrees expose
 actions from the selected source environment and run them from the managed
 checkout.
+
+The supported daemon-wide model providers are `codex` and `openrouter`.
+Changing `global.model.provider` requires a daemon restart; until then, new
+conversation creation fails with an explicit restart-required error rather
+than sending a model ID to the wrong service. OpenRouter model IDs must include
+their organization prefix, for example `anthropic/claude-sonnet-4.6`.
 
 ## Terminal chat
 
@@ -524,7 +555,8 @@ performed by the daemon.
 ## Packages
 
 - `agent`, `agentloop`: provider/session contracts and the model/tool loop.
-- `provider/codex`: direct Codex credentials, HTTP/SSE, state, and tool calls.
+- `provider/codex`, `provider/openrouter`: provider credentials, HTTP/SSE,
+  state, reasoning, images, and tool calls.
 - `threadstore`: per-conversation SQLite persistence; the historical name is
   retained for compatibility.
 - `tools`: confined built-ins and reusable macOS/Linux process sandboxing.
@@ -539,8 +571,8 @@ performed by the daemon.
 ## Current limitations
 
 - The ChatGPT subscription endpoint is not a public, supported OpenAI API and
-  can change without compatibility guarantees. A supported Platform provider
-  can be added behind the existing interfaces.
+  can change without compatibility guarantees. OpenRouter uses its public
+  Responses API, which OpenRouter currently labels beta.
 - Process sandboxing depends on macOS `sandbox-exec` or Linux Bubblewrap.
   Sandboxed local tools/MCP/extensions fail closed when the executable is
   missing or the host/container blocks the required namespaces.
@@ -579,6 +611,15 @@ request, and consumes subscription allowance:
 ```sh
 go test -tags=live ./provider/codex -run TestLiveSubscriptionCredentials -v
 go test -tags=live ./provider/codex -run TestLiveLunaReasoningAndImage -v
+```
+
+OpenRouter package tests use a local fake server and require no key. A real
+smoke test can be run with `OPENROUTER_API_KEY` and an explicitly selected
+model after confirming the request will incur API charges.
+
+```sh
+OPENROUTER_LIVE_MODEL=openrouter/auto \
+  go test -tags=live ./provider/openrouter -run TestLiveResponses -v
 ```
 
 It uses `gpt-5.6-luna` by default; set `CODEX_LIVE_MODEL` to override it. The

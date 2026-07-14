@@ -21,6 +21,7 @@ import (
 	"github.com/dire-kiwi/dire-agent/internal/mcpapp"
 	"github.com/dire-kiwi/dire-agent/internal/updater"
 	"github.com/dire-kiwi/dire-agent/provider/codex"
+	"github.com/dire-kiwi/dire-agent/provider/openrouter"
 )
 
 func main() {
@@ -288,7 +289,8 @@ Advanced:
 func runAsk(arguments []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	flags := flag.NewFlagSet("dire-agent ask", flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	model := flags.String("model", "gpt-5.6", "Codex model")
+	providerName := flags.String("provider", "codex", "model provider: codex or openrouter")
+	model := flags.String("model", "", "model ID (provider default when omitted)")
 	instructions := flags.String("instructions", "", "developer instructions for the agent")
 	authFile := flags.String("auth-file", "", "Codex CLI auth.json path")
 	timeout := flags.Duration("timeout", 10*time.Minute, "maximum time for the request")
@@ -308,14 +310,14 @@ func runAsk(arguments []string, stdin io.Reader, stdout, stderr io.Writer) error
 	ctx, cancel := context.WithTimeout(baseContext, *timeout)
 	defer cancel()
 
-	provider, err := codex.New(ctx, codex.Config{AuthFile: *authFile})
+	provider, resolvedModel, err := newAskProvider(ctx, *providerName, *model, *authFile)
 	if err != nil {
 		return err
 	}
 	defer provider.Close()
 
 	aiAgent, err := agent.New(ctx, provider, agent.SessionOptions{
-		Model:        *model,
+		Model:        resolvedModel,
 		Instructions: *instructions,
 	})
 	if err != nil {
@@ -327,6 +329,30 @@ func runAsk(arguments []string, stdin io.Reader, stdout, stderr io.Writer) error
 	}
 	_, err = fmt.Fprintln(stdout, result.Text)
 	return err
+}
+
+func newAskProvider(ctx context.Context, name, model, authFile string) (agent.Provider, string, error) {
+	name = strings.ToLower(strings.TrimSpace(name))
+	model = strings.TrimSpace(model)
+	switch name {
+	case "", "codex":
+		if model == "" {
+			model = "gpt-5.6"
+		}
+		provider, err := codex.New(ctx, codex.Config{AuthFile: authFile, DefaultModel: model})
+		return provider, model, err
+	case "openrouter":
+		if model == "" {
+			model = "openrouter/auto"
+		}
+		if !strings.Contains(model, "/") {
+			return nil, "", fmt.Errorf("OpenRouter model %q must be an organization-qualified slug", model)
+		}
+		provider, err := openrouter.New(ctx, openrouter.Config{DefaultModel: model, AppTitle: "Dire Agent"})
+		return provider, model, err
+	default:
+		return nil, "", fmt.Errorf("unsupported model provider %q (supported: codex, openrouter)", name)
+	}
 }
 
 func readPrompt(arguments []string, stdin io.Reader) (string, error) {

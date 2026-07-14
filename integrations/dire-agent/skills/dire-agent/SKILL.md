@@ -16,4 +16,4 @@ Use the `dire_agent_*` MCP tools to work with the user's local Dire Agent daemon
 - Inspect `dire_agent_get_state` for running status, queues, token/cache usage, context fill, skills, and capabilities.
 - Never claim that this transfers the current Codex conversation. It operates a separate persistent Dire Agent conversation through standard MCP.
 
-The Dire Agent daemon accesses the subscription endpoint directly with Codex CLI credentials. This plugin does not use Codex app-server.
+The Dire Agent daemon uses its configured model provider (Codex subscription or OpenRouter). This plugin does not use Codex app-server.

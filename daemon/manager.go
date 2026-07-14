@@ -30,9 +30,18 @@ type ManagerConfig struct {
 	DefaultThinking string
 	MaxAgentSteps   int
 	AvailableModels []ModelInfo
-	Settings        *configuration.Store
-	Capabilities    capability.Resolver
-	WorktreeRoot    string
+	// OverrideModelDefaults makes the explicitly supplied DefaultProvider and
+	// DefaultModel take precedence over model defaults in Settings. It is used
+	// by daemon command-line overrides; ordinary configuration remains the
+	// source of truth when false.
+	OverrideModelDefaults bool
+	// SupportedProviders optionally constrains provider names accepted through
+	// the daemon configuration API. An empty list preserves the manager's
+	// provider-neutral embedding behavior.
+	SupportedProviders []string
+	Settings           *configuration.Store
+	Capabilities       capability.Resolver
+	WorktreeRoot       string
 }
 
 type Manager struct {
@@ -163,6 +172,71 @@ func NewManager(config ManagerConfig) (*Manager, error) {
 		teamSignals:   make(map[string]chan struct{}),
 		teamMailboxes: make(map[string][]agentteam.Message),
 	}, nil
+}
+
+func (m *Manager) requireActiveProvider(configured string) error {
+	configured = strings.TrimSpace(configured)
+	active := strings.TrimSpace(m.config.DefaultProvider)
+	if configured == "" || strings.EqualFold(configured, active) {
+		return nil
+	}
+	return fmt.Errorf("daemon: configured model provider %q is not active (currently %q); restart the daemon to apply the provider change", configured, active)
+}
+
+func (m *Manager) validateActiveModel(model string) error {
+	model = strings.TrimSpace(model)
+	if model == "" {
+		return errors.New("daemon: model must not be empty")
+	}
+	if strings.EqualFold(strings.TrimSpace(m.config.DefaultProvider), "openrouter") && !qualifiedProviderModel(model) {
+		return fmt.Errorf("daemon: OpenRouter model %q must be an organization-qualified slug such as openrouter/auto", model)
+	}
+	return nil
+}
+
+func qualifiedProviderModel(model string) bool {
+	parts := strings.Split(strings.TrimSpace(model), "/")
+	if len(parts) < 2 {
+		return false
+	}
+	for _, part := range parts {
+		if strings.TrimSpace(part) == "" {
+			return false
+		}
+	}
+	return true
+}
+
+func (m *Manager) validateConfigProviders(config configuration.Config) error {
+	if len(m.config.SupportedProviders) == 0 {
+		return nil
+	}
+	allowed := make(map[string]bool, len(m.config.SupportedProviders))
+	for _, provider := range m.config.SupportedProviders {
+		if provider = strings.ToLower(strings.TrimSpace(provider)); provider != "" {
+			allowed[provider] = true
+		}
+	}
+	validate := func(settings configuration.Settings, scope string) error {
+		provider := strings.ToLower(strings.TrimSpace(settings.Model.Provider))
+		if !allowed[provider] {
+			return fmt.Errorf("daemon: %s model provider %q is unsupported (supported: %s)", scope, settings.Model.Provider, strings.Join(m.config.SupportedProviders, ", "))
+		}
+		if provider == "openrouter" && !qualifiedProviderModel(settings.Model.ID) {
+			return fmt.Errorf("daemon: %s OpenRouter model %q must be an organization-qualified slug such as openrouter/auto", scope, settings.Model.ID)
+		}
+		return nil
+	}
+	if err := validate(config.Global, "global"); err != nil {
+		return err
+	}
+	for id := range config.Projects {
+		settings, _ := config.Effective(id)
+		if err := validate(settings, "project "+id); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func invalidWorktreeRoot(root, store string) bool {
