@@ -131,4 +131,31 @@ describe("Transcript scrolling", () => {
     );
     expect(scroll.scrollTop).toBe(90);
   });
+
+  it("renders web search citations as clickable links", () => {
+    render(
+      <Transcript
+        conversationID="project-search"
+        state={{
+          ...emptyConversation,
+          messages: [{
+            id: "search-result",
+            role: "tool",
+            label: "web_search",
+            content: "Search answer.\n\n![tracker](https://tracker.example/pixel.png)\n\nSources:\n- [OpenAI docs](https://developers.openai.com/api/docs/guides/tools-web-search)",
+          }],
+        }}
+        loading={false}
+        onPrompt={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "OpenAI docs" }))
+      .toHaveAttribute("href", "https://developers.openai.com/api/docs/guides/tools-web-search");
+    expect(screen.getByRole("link", { name: "OpenAI docs" }))
+      .toHaveAttribute("target", "_blank");
+    expect(screen.getByRole("link", { name: "OpenAI docs" }))
+      .toHaveAttribute("rel", "noreferrer");
+    expect(screen.queryByRole("img", { name: "tracker" })).not.toBeInTheDocument();
+  });
 });

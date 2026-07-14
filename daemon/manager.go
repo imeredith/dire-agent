@@ -18,6 +18,7 @@ import (
 	"github.com/dire-kiwi/dire-agent/configuration"
 	"github.com/dire-kiwi/dire-agent/skills"
 	"github.com/dire-kiwi/dire-agent/threadstore"
+	"github.com/dire-kiwi/dire-agent/websearch"
 )
 
 type ManagerConfig struct {
@@ -32,7 +33,12 @@ type ManagerConfig struct {
 	AvailableModels []ModelInfo
 	Settings        *configuration.Store
 	Capabilities    capability.Resolver
-	WorktreeRoot    string
+	// WebSearch optionally overrides the provider's hosted search backend. When
+	// nil, providers that implement websearch.Searcher are enabled automatically.
+	// The caller retains ownership of a separately supplied backend.
+	WebSearch        websearch.Searcher
+	DisableWebSearch bool
+	WorktreeRoot     string
 }
 
 type Manager struct {
@@ -81,6 +87,11 @@ func NewManager(config ManagerConfig) (*Manager, error) {
 	}
 	if config.Provider == nil {
 		return nil, errors.New("daemon: stateful provider is required")
+	}
+	if config.DisableWebSearch {
+		config.WebSearch = nil
+	} else if config.WebSearch == nil {
+		config.WebSearch, _ = config.Provider.(websearch.Searcher)
 	}
 	if config.DefaultModel == "" {
 		config.DefaultModel = "gpt-5.6"

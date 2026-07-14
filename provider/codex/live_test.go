@@ -15,6 +15,7 @@ import (
 
 	"github.com/dire-kiwi/dire-agent/agent"
 	"github.com/dire-kiwi/dire-agent/provider/codex"
+	"github.com/dire-kiwi/dire-agent/websearch"
 )
 
 // TestLiveLunaReasoningAndImage exercises the streaming reasoning-summary and
@@ -132,6 +133,29 @@ func TestLiveSubscriptionCredentials(t *testing.T) {
 	t.Logf("Luna usage: input=%d output=%d cache_read=%d cache_write=%d context=%d/%d",
 		result.Usage.InputTokens, result.Usage.OutputTokens, result.Usage.CacheReadTokens,
 		result.Usage.CacheWriteTokens, result.Usage.ContextTokens, result.Usage.ContextWindow)
+}
+
+// TestLiveWebSearch exercises the private subscription endpoint's hosted
+// web_search path with the dedicated ephemeral search model.
+func TestLiveWebSearch(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	provider, err := codex.New(ctx, codex.Config{})
+	if err != nil {
+		t.Fatalf("start direct provider using Codex CLI credentials: %v", err)
+	}
+	defer func() { _ = provider.Close() }()
+	result, err := provider.Search(ctx, websearch.Request{
+		Query:          "What is the title of OpenAI's official web search API guide?",
+		AllowedDomains: []string{"developers.openai.com"}, BlockedDomains: []string{"reddit.com"}, NumResults: 3,
+	})
+	if err != nil {
+		t.Fatalf("run live web search: %v", err)
+	}
+	if strings.TrimSpace(result.Answer) == "" || len(result.Citations) == 0 {
+		t.Fatalf("live web search returned no grounded answer: %#v", result)
+	}
+	t.Logf("web search citations=%d usage=%+v", len(result.Citations), result.Usage)
 }
 
 // TestLiveLunaPromptCaching verifies GPT-5.6 prompt-cache reuse. The first turn

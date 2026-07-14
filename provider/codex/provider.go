@@ -57,6 +57,7 @@ type Provider struct {
 	client          *http.Client
 	baseURL         string
 	defaultModel    string
+	webSearchModel  string
 	userAgent       string
 	protocolVersion string
 	credentials     *credentialStore
@@ -80,7 +81,7 @@ func New(ctx context.Context, config Config) (*Provider, error) {
 
 	return &Provider{
 		client: resolved.HTTPClient, baseURL: strings.TrimRight(resolved.BaseURL, "/"),
-		defaultModel: resolved.DefaultModel, userAgent: resolved.UserAgent,
+		defaultModel: resolved.DefaultModel, webSearchModel: resolved.WebSearchModel, userAgent: resolved.UserAgent,
 		protocolVersion: resolved.ProtocolVersion, credentials: store,
 	}, nil
 }

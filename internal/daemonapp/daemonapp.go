@@ -40,6 +40,7 @@ func Run(arguments []string) error {
 	defaultModel := flags.String("model", "gpt-5.6", "default model")
 	defaultCWD := flags.String("cwd", "", "default project folder")
 	defaultTools := flags.String("tools", "read,grep,find,ls", "comma-separated default tool allowlist")
+	webSearch := flags.Bool("web-search", true, "enable provider-backed live web search when available")
 	webDirectory := flags.String("web-dir", "", "serve the production Web UI from this Vite dist directory")
 	disableWebUI := flags.Bool("no-web-ui", false, "disable the embedded production Web UI")
 	allowRemote := flags.Bool("allow-remote", false, "allow listening on a non-loopback address without transport authentication")
@@ -142,7 +143,7 @@ func Run(arguments []string) error {
 	manager, err := daemon.NewManager(daemon.ManagerConfig{
 		Store: store, Provider: provider, DefaultModel: *defaultModel, DefaultCWD: *defaultCWD,
 		DefaultTools: SplitList(*defaultTools), DefaultThinking: string(loadedConfig.Global.Thinking.Level),
-		Settings: configStore, Capabilities: capabilities, WorktreeRoot: *worktreeRoot,
+		Settings: configStore, Capabilities: capabilities, DisableWebSearch: !*webSearch, WorktreeRoot: *worktreeRoot,
 	})
 	if err != nil {
 		provider.Close()

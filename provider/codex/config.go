@@ -15,6 +15,7 @@ const (
 	defaultRefreshURL      = "https://auth.openai.com/oauth/token"
 	defaultOAuthClient     = "app_EMoamEEZ73f0CkXaXp7hrann"
 	defaultModel           = "gpt-5.6"
+	defaultWebSearchModel  = "gpt-5.4"
 	defaultProtocolVersion = "0.144.0-alpha.4"
 	defaultUserAgent       = "codex_cli_rs/0.144.0-alpha.4 (dire-agent/0.1.0)"
 	defaultOriginator      = "codex_cli_rs"
@@ -35,7 +36,10 @@ type Config struct {
 	OAuthClientID string
 	// DefaultModel is used when SessionOptions.Model is empty.
 	DefaultModel string
-	UserAgent    string
+	// WebSearchModel is used by isolated hosted-search sessions. It defaults to
+	// gpt-5.4, matching the full Responses path used for native web_search.
+	WebSearchModel string
+	UserAgent      string
 	// ProtocolVersion is sent in the Version header expected by the private
 	// Codex subscription endpoint. Override it when that wire contract advances.
 	ProtocolVersion string
@@ -58,6 +62,9 @@ func resolveConfig(config Config) (Config, error) {
 	}
 	if config.DefaultModel == "" {
 		config.DefaultModel = defaultModel
+	}
+	if config.WebSearchModel == "" {
+		config.WebSearchModel = defaultWebSearchModel
 	}
 	if config.UserAgent == "" {
 		config.UserAgent = defaultUserAgent

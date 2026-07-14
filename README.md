@@ -18,6 +18,9 @@ from storage, tools, the agent loop, and clients.
   agentic tool loop.
 - Direct Codex HTTP/SSE transport with credential refresh and GPT-5.6 model
   selection.
+- Provider-neutral `web_search` with synthesized answers and clickable source
+  citations. When Codex is configured, every search runs in a fresh ephemeral
+  provider sub-agent rather than consuming the parent conversation's history.
 - Cumulative input, output, cache-read, provider-reported cache-write,
   total-token, and current-context accounting.
 - One WAL-enabled SQLite file per project, standalone chat, and child agent,
@@ -78,7 +81,9 @@ boundary.
 
 Standalone chats never receive the local built-ins. They may still use trusted
 skills, enabled MCP tools, extensions, and agent-team tools. Remote HTTP MCP
-actions are not constrained by a local filesystem sandbox.
+actions are not constrained by a local filesystem sandbox. Hosted web search is
+also provider-side: it can access the public internet even when the project's
+local `bash` sandbox denies network access.
 
 Pasted images are accepted only by top-level projects. The daemon validates
 their MIME type and size, generates the filename, rejects symlink escapes, and
@@ -182,6 +187,18 @@ Defaults:
 - configuration: `~/.dire-agent/config.json`
 - model: `gpt-5.6`
 - credentials: `$CODEX_HOME/auth.json` or `~/.codex/auth.json`
+- provider-backed live web search: enabled when available (pass
+  `-web-search=false` to `dire-agent daemon` to disable it)
+
+With Codex credentials configured, projects and standalone chats automatically
+receive a `web_search` capability. It accepts Pi-compatible `query` or `queries`
+arguments plus optional `numResults`, `recencyFilter`, and `domainFilter`
+controls. A domain prefixed with `-` is excluded. Searches are synchronous tool
+calls backed by isolated one-shot provider sessions; they do not create child
+conversation databases or appear in the persistent agent tree. The Codex
+backend uses a dedicated full-Responses search worker (`gpt-5.4` by default,
+overridable through `codex.Config.WebSearchModel`). Each parent-agent run is
+limited to eight explicit search queries.
 
 If the projects directory is absent but `~/.dire-agent/threads` exists, the daemon
 uses the legacy directory so existing histories remain visible. The convenient
@@ -525,6 +542,8 @@ performed by the daemon.
 
 - `agent`, `agentloop`: provider/session contracts and the model/tool loop.
 - `provider/codex`: direct Codex credentials, HTTP/SSE, state, and tool calls.
+- `websearch`: provider-neutral search requests, isolated search-agent tool,
+  validation, and citation rendering.
 - `threadstore`: per-conversation SQLite persistence; the historical name is
   retained for compatibility.
 - `tools`: confined built-ins and reusable macOS/Linux process sandboxing.
@@ -559,6 +578,8 @@ performed by the daemon.
   conversation history deliberately preserves a published managed checkout.
 - Session compaction, forking, and tree navigation for ordinary conversations
   are not implemented. Child-agent trees are a separate orchestration feature.
+- Token usage from ephemeral provider-backed web searches is returned by the
+  search backend but is not yet added to the parent conversation's usage total.
 - The daemon/WebSocket has no built-in authentication or TLS.
 
 ## Tests
@@ -573,16 +594,19 @@ npm test
 npm run build
 ```
 
-The opt-in live test uses current Codex CLI credentials, makes a real direct
-request, and consumes subscription allowance:
+The opt-in live tests use current Codex CLI credentials, make real direct
+requests, and consume subscription allowance:
 
 ```sh
 go test -tags=live ./provider/codex -run TestLiveSubscriptionCredentials -v
 go test -tags=live ./provider/codex -run TestLiveLunaReasoningAndImage -v
+go test -tags=live ./provider/codex -run TestLiveWebSearch -v
 ```
 
-It uses `gpt-5.6-luna` by default; set `CODEX_LIVE_MODEL` to override it. The
-longer `TestLiveLunaPromptCaching` test validates a real cache read. The direct
-subscription stream currently omits cache-write telemetry, so the library and
-UIs report `0` rather than inventing a write count; a later nonzero cache read
-is the evidence that the prefix was stored. Model output is never prompt-cached.
+The ordinary subscription test uses `gpt-5.6-luna` by default; set
+`CODEX_LIVE_MODEL` to override it. `TestLiveWebSearch` instead uses the dedicated
+search model. The longer `TestLiveLunaPromptCaching` test validates a real cache
+read. The direct subscription stream currently omits cache-write telemetry, so
+the library and UIs report `0` rather than inventing a write count; a later
+nonzero cache read is the evidence that the prefix was stored. Model output is
+never prompt-cached.

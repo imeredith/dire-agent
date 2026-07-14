@@ -14,6 +14,7 @@ import (
 	"github.com/dire-kiwi/dire-agent/skills"
 	"github.com/dire-kiwi/dire-agent/threadstore"
 	"github.com/dire-kiwi/dire-agent/tools"
+	"github.com/dire-kiwi/dire-agent/websearch"
 )
 
 func (m *Manager) resolveCapabilities(ctx context.Context, resource threadstore.Thread) (capability.Snapshot, error) {
@@ -53,6 +54,21 @@ func (m *Manager) resolveCapabilities(ctx context.Context, resource threadstore.
 	}
 	if snapshot.Tools == nil {
 		snapshot.Tools = make(map[string]agentloop.Tool)
+	}
+	if m.config.WebSearch != nil {
+		searchTool, err := websearch.NewTool(m.config.WebSearch)
+		if err != nil {
+			return capability.Snapshot{}, err
+		}
+		if _, exists := snapshot.Tools[websearch.Name]; exists {
+			return capability.Snapshot{}, errors.New("daemon: duplicate provider tool " + websearch.Name)
+		}
+		snapshot.Tools[websearch.Name] = searchTool
+		definition := searchTool.Definition()
+		snapshot.Descriptors = append(snapshot.Descriptors, capability.Descriptor{
+			Name: definition.Name, Source: "provider:" + m.config.WebSearch.Name(),
+			Description: definition.Description, Enabled: true, Status: "ready",
+		})
 	}
 	if resource.IsSubagent() {
 		effectiveTools, err := m.effectiveSubagentTools(ctx, resource)

@@ -192,7 +192,20 @@ function MessageCard({ message, streaming = false }: { message: ChatMessage; str
         )}
         <div className="tool-result-section">
           <small>{message.role === "error" ? "Error" : "Output"}</small>
-          <pre>{message.content}</pre>
+          {message.role === "tool" && message.label === "web_search" ? (
+            <div className="markdown-body tool-markdown">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                skipHtml
+                components={{
+                  a: ({ node: _node, ...props }) => <a {...props} target="_blank" rel="noreferrer" />,
+                  img: () => null,
+                }}
+              >{message.content}</ReactMarkdown>
+            </div>
+          ) : (
+            <pre>{message.content}</pre>
+          )}
         </div>
       </article>
     );
