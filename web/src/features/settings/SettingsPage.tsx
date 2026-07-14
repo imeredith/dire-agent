@@ -20,7 +20,7 @@ const links = [
   ["tools", "Tools & queues"],
   ["standalone", "Standalone chats"],
   ["skills", "Skills"],
-  ["mcp", "MCP servers"],
+  ["mcp", "MCP registry"],
   ["extensions", "Extensions"],
   ["subagents", "Subagents"],
   ["workspace-launchers", "Workspace tabs"],

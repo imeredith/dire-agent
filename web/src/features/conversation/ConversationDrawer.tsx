@@ -1,4 +1,4 @@
-import { Boxes, Braces, FileCode2, FolderOpen, GitBranch, ShieldCheck, Trash2, X } from "lucide-react";
+import { Boxes, Braces, FileCode2, FolderOpen, GitBranch, Server, ShieldCheck, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { arraysEqual, mergeModelOptions, shortID, thinkingLevels, usageContextWindow } from "../../lib/display";
 import {
@@ -62,6 +62,14 @@ export function ConversationDrawer(props: DrawerProps) {
   const modelOptions = useMemo(
     () => mergeModelOptions(props.models, resource?.model),
     [props.models, resource?.model],
+  );
+  const mcpServers = useMemo(
+    () => props.capabilities.capabilities.filter(isMCPServerDescriptor),
+    [props.capabilities.capabilities],
+  );
+  const otherCapabilities = useMemo(
+    () => props.capabilities.capabilities.filter((item) => !isMCPServerDescriptor(item)),
+    [props.capabilities.capabilities],
   );
   if (!open) return null;
 
@@ -278,16 +286,61 @@ export function ConversationDrawer(props: DrawerProps) {
             )}
 
             <section className="drawer-section">
-              <div className="section-title"><span>Capabilities</span><small>{props.capabilities.capabilities.length}</small></div>
+              <div className="section-title"><span>MCP registry</span><small>{mcpServers.length} global</small></div>
+              <p className="quiet-copy mcp-registry-help">
+                Inherit uses the global registry default. On or Off applies only to this {isChat ? "chat" : "project"}.
+              </p>
+              <div className="mcp-registry-list">
+                {mcpServers.map((server) => {
+                  const serverName = server.name.slice("mcp:".length);
+                  const override = mcpOverrideValue(resource, serverName);
+                  return (
+                    <div className="mcp-registry-row" key={server.name} role="group" aria-label={`${serverName} MCP server`}>
+                      <Server size={15} />
+                      <div className="mcp-registry-copy">
+                        <strong>{serverName}</strong>
+                        <small title={server.description}>{server.description || "Global MCP server"}</small>
+                        <small className="mcp-registry-status">
+                          <span className={server.enabled && server.status === "ready" ? "status-ready" : "status-muted"} />
+                          {server.enabled ? "Enabled" : "Disabled"} · {server.status || (server.enabled ? "ready" : "disabled")}
+                        </small>
+                      </div>
+                      <select
+                        aria-label={`MCP override for ${serverName}`}
+                        value={override}
+                        disabled={running}
+                        onChange={(event) => {
+                          const value = event.target.value as MCPOverrideValue;
+                          const enabled = value === "inherit" ? null : value === "on";
+                          void props.onUpdate({
+                            type: "set_mcp_server_enabled",
+                            mcp_server: serverName,
+                            enabled,
+                          }, enabled === null ? `${serverName} now inherits the global MCP registry` : `${serverName} override updated`);
+                        }}
+                      >
+                        <option value="inherit">Inherit</option>
+                        <option value="on">On</option>
+                        <option value="off">Off</option>
+                      </select>
+                    </div>
+                  );
+                })}
+                {!mcpServers.length && <p className="quiet-copy">No MCP servers are configured in the global registry.</p>}
+              </div>
+            </section>
+
+            <section className="drawer-section">
+              <div className="section-title"><span>Capabilities</span><small>{otherCapabilities.length}</small></div>
               <div className="capability-list">
-                {props.capabilities.capabilities.map((item) => (
+                {otherCapabilities.map((item) => (
                   <div className="capability-row" key={`${item.source}:${item.name}`}>
                     <Boxes size={14} />
                     <div><strong>{item.name}</strong><small>{item.source} · {item.status || (item.enabled ? "ready" : "disabled")}</small></div>
                     <span className={item.enabled ? "status-ready" : "status-muted"} />
                   </div>
                 ))}
-                {!props.capabilities.capabilities.length && <p className="quiet-copy">No capabilities discovered.</p>}
+                {!otherCapabilities.length && <p className="quiet-copy">No capabilities discovered.</p>}
               </div>
             </section>
 
@@ -334,4 +387,15 @@ function QueueField({ label, value, onChange }: { label: string; value: QueueMod
       </select>
     </label>
   );
+}
+
+type MCPOverrideValue = "inherit" | "on" | "off";
+
+function isMCPServerDescriptor(item: CapabilityState["capabilities"][number]) {
+  return item.source === "mcp" && item.name.startsWith("mcp:");
+}
+
+function mcpOverrideValue(resource: Conversation, serverName: string): MCPOverrideValue {
+  if (!resource.mcp_server_overrides || !Object.prototype.hasOwnProperty.call(resource.mcp_server_overrides, serverName)) return "inherit";
+  return resource.mcp_server_overrides?.[serverName] ? "on" : "off";
 }

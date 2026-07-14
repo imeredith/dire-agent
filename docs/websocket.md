@@ -410,6 +410,7 @@ set_thinking_level
 set_steering_mode
 set_follow_up_mode
 set_tools
+set_mcp_server_enabled
 set_project_sandbox_folders
 get_project_sandbox, set_project_sandbox
 get_available_tools
@@ -423,6 +424,28 @@ The setting value is sent in `name`, `category`, `model`, `level`, `mode`,
 run. Chats reject local tool enablement, categories, and sandbox folders.
 Categories are trimmed, limited to 80 characters, and available only to
 top-level projects.
+
+Reusable MCP server definitions and credentials live in the global
+configuration registry. A conversation changes only its local enablement choice:
+
+```json
+{
+  "id": "req-mcp",
+  "type": "set_mcp_server_enabled",
+  "conversation_id": "project_...",
+  "mcp_server": "docs",
+  "enabled": false
+}
+```
+
+Use `true` or `false` for an explicit choice and `null` to clear it and resume
+inheritance. The response is the updated conversation metadata, whose optional
+`mcp_server_overrides` map preserves explicit false values. Project/chat choices
+override global and per-project configuration; a child thread inherits its root
+choice before applying its own local override. A child can explicitly enable a
+server only when at least one of that server's tools was included in its
+persisted spawn grant. Removed servers cannot be resurrected by a stale
+conversation override.
 
 Replace a project's complete included-folder set with:
 
@@ -587,14 +610,17 @@ capability snapshots.
 
 `config_validate` validates a complete candidate without persisting it.
 `config_effective` accepts a conversation ID and returns
-`{settings,project_override}` after applying a matching project override.
+`{settings,project_override}` after applying a matching project override. This
+reports configuration layers only; conversation-local MCP choices are returned
+in conversation metadata as `mcp_server_overrides`.
 
 Configuration supports:
 
 - global and per-project model/tool/queue defaults;
 - Agent Skills roots, disabled paths, and trust;
-- stdio or Streamable HTTP MCP servers, tool allowlists, approval modes,
-  environment/headers, and secret markers;
+- a global registry of stdio or Streamable HTTP MCP servers, tool allowlists,
+  approval modes, environment/headers, and secret markers, with inherited or
+  explicit per-conversation enablement;
 - local, Git, or registry extension source metadata and trust;
 - child-agent limits and profiles;
 - desktop paths/sync preferences and standalone-chat defaults.

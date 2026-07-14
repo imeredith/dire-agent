@@ -77,7 +77,7 @@ var supportedCommands = []string{
 	"subscribe_project", "unsubscribe_project", "set_project_name", "set_project_category", "set_project_sandbox_folders", "get_project_sandbox", "set_project_sandbox", "delete_project",
 	"create_thread", "new_session", "list_threads", "get_thread", "get_state", "get_messages", "get_events",
 	"prompt", "steer", "follow_up", "abort", "subscribe", "unsubscribe",
-	"set_model", "set_thread_name", "set_session_name", "set_thinking_level", "set_steering_mode", "set_follow_up_mode", "set_tools",
+	"set_model", "set_thread_name", "set_session_name", "set_thinking_level", "set_steering_mode", "set_follow_up_mode", "set_tools", "set_mcp_server_enabled",
 	"set_chat_name", "set_conversation_name", "get_available_tools", "get_available_models", "get_commands", "delete_thread",
 	"get_project_launchers", "launch_project_app",
 	"inspect_project_workspace", "get_project_environments", "put_project_environment", "delete_project_environment",

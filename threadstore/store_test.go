@@ -23,7 +23,7 @@ func TestOneSQLiteFilePerThreadPersistsData(t *testing.T) {
 		ID: "thread_test", Model: "model-a", CWD: directory,
 		ParentID: "parent", RootID: "root", AgentName: "reviewer", AgentRole: "review", Depth: 1,
 		ThinkingLevel: "medium", SteeringMode: "one-at-a-time", FollowUpMode: "one-at-a-time",
-		Tools: []string{"read"},
+		Tools: []string{"read"}, MCPServerOverrides: map[string]bool{"docs": false},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -67,5 +67,8 @@ func TestOneSQLiteFilePerThreadPersistsData(t *testing.T) {
 	}
 	if threads[0].ParentID != "parent" || threads[0].RootID != "root" || threads[0].AgentName != "reviewer" || threads[0].Depth != 1 {
 		t.Fatalf("subagent metadata = %#v", threads[0])
+	}
+	if enabled, exists := threads[0].MCPServerOverrides["docs"]; !exists || enabled {
+		t.Fatalf("MCP server overrides = %#v", threads[0].MCPServerOverrides)
 	}
 }

@@ -132,6 +132,25 @@ func (c *Client) SetProjectTools(ctx context.Context, projectID string, tools []
 	return c.SetTools(ctx, projectID, tools)
 }
 
+// SetMCPServerEnabled overrides one globally configured MCP server for a
+// conversation. Pass nil to clear the override and resume inheritance.
+func (c *Client) SetMCPServerEnabled(ctx context.Context, conversationID, server string, enabled *bool) (threadstore.Thread, error) {
+	var thread threadstore.Thread
+	err := c.call(ctx, daemon.Command{
+		Type: "set_mcp_server_enabled", ConversationID: conversationID,
+		ThreadID: conversationID, MCPServer: server, Enabled: enabled,
+	}, &thread)
+	return thread, err
+}
+
+func (c *Client) SetProjectMCPServerEnabled(ctx context.Context, projectID, server string, enabled *bool) (threadstore.Project, error) {
+	return c.SetMCPServerEnabled(ctx, projectID, server, enabled)
+}
+
+func (c *Client) SetChatMCPServerEnabled(ctx context.Context, chatID, server string, enabled *bool) (threadstore.Chat, error) {
+	return c.SetMCPServerEnabled(ctx, chatID, server, enabled)
+}
+
 func (c *Client) AvailableTools(ctx context.Context) ([]string, error) {
 	var result struct {
 		Tools []string `json:"tools"`

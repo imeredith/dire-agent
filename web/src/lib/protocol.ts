@@ -79,6 +79,7 @@ export interface Conversation {
   steering_mode: QueueMode;
   follow_up_mode: QueueMode;
   tools: string[];
+  mcp_server_overrides?: Record<string, boolean>;
   worktree?: ProjectWorktree;
   usage?: Usage;
   status: "idle" | "running" | string;
@@ -236,6 +237,7 @@ export interface CreateProjectOptions {
   instructions?: string;
   thinking_level?: ThinkingLevel;
   tools?: string[];
+  mcp_server_overrides?: Record<string, boolean>;
   worktree?: ProjectWorktreeOptions;
 }
 
@@ -244,6 +246,7 @@ export interface CreateChatOptions {
   model?: string;
   instructions?: string;
   thinking_level?: ThinkingLevel;
+  mcp_server_overrides?: Record<string, boolean>;
 }
 
 export interface ImageAttachment {
@@ -293,6 +296,8 @@ export interface Command {
   command_name?: string;
   arguments?: string;
   launcher_id?: string;
+  mcp_server?: string;
+  enabled?: boolean | null;
   attachments?: ImageAttachment[];
   folder?: string;
   environment_id?: string;

@@ -142,8 +142,11 @@ func mcpConfigs(scope Scope, settings configuration.Settings) ([]mcpclient.Serve
 	var denied []Descriptor
 	for _, name := range names {
 		server := input[name]
+		if enabled, overridden := scope.MCPServerOverrides[name]; overridden {
+			server.Enabled = enabled
+		}
 		servers[name] = server
-		if recursiveMCP(server) {
+		if server.Enabled && recursiveMCP(server) {
 			denied = append(denied, Descriptor{Name: "mcp:" + name, Source: "mcp", Status: "recursive_denied", Description: "The outward Dire Agent desktop bridge cannot be registered as an inward MCP server."})
 			continue
 		}
@@ -155,7 +158,7 @@ func mcpConfigs(scope Scope, settings configuration.Settings) ([]mcpclient.Serve
 		}
 		if server.Transport == configuration.MCPStdio {
 			config.Transport = mcpclient.TransportStdio
-			if settings.Tools.Sandbox != configuration.SandboxOff {
+			if server.Enabled && settings.Tools.Sandbox != configuration.SandboxOff {
 				workspace := scope.CWD
 				privateWorkspace := false
 				if workspace == "" {

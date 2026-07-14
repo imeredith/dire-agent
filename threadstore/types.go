@@ -29,10 +29,14 @@ type Thread struct {
 	SteeringMode      string        `json:"steering_mode"`
 	FollowUpMode      string        `json:"follow_up_mode"`
 	Tools             []string      `json:"tools"`
-	Usage             agent.Usage   `json:"usage"`
-	Status            string        `json:"status"`
-	CreatedAt         time.Time     `json:"created_at"`
-	UpdatedAt         time.Time     `json:"updated_at"`
+	// MCPServerOverrides records conversation-local enablement choices for
+	// globally configured MCP servers. Missing entries inherit the effective
+	// global/project setting, while explicit false values remain meaningful.
+	MCPServerOverrides map[string]bool `json:"mcp_server_overrides,omitempty"`
+	Usage              agent.Usage     `json:"usage"`
+	Status             string          `json:"status"`
+	CreatedAt          time.Time       `json:"created_at"`
+	UpdatedAt          time.Time       `json:"updated_at"`
 }
 
 // WorktreeInfo records the source and immutable Git starting point for a

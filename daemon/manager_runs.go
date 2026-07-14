@@ -32,13 +32,16 @@ func (m *Manager) PromptWithAttachments(ctx context.Context, id, message, stream
 	if err != nil {
 		return err
 	}
-	if err := m.refreshCapabilities(ctx, runtime); err != nil {
-		return err
-	}
 	runtime.mu.Lock()
 	if runtime.finishing {
 		runtime.mu.Unlock()
 		return errors.New("daemon: conversation is settling; retry after agent_settled")
+	}
+	if !runtime.running {
+		if err := m.refreshCapabilitiesLocked(ctx, runtime); err != nil {
+			runtime.mu.Unlock()
+			return err
+		}
 	}
 	if runtime.running {
 		if len(decoded) != 0 {

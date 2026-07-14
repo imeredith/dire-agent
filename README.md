@@ -208,7 +208,9 @@ go run ./cmd/dire-agent daemon \
 Configuration is validated, revisioned, atomically replaced, and written with
 mode `0600`. It has global settings plus per-project overrides for models,
 queues, sandbox policy, skills, MCP servers, extensions, child-agent profiles,
-desktop metadata, and standalone-chat defaults. WebSocket configuration
+desktop metadata, and standalone-chat defaults. Global MCP server definitions
+form a reusable registry; projects, chats, and child threads persist only an
+optional on/off choice for each registered server. WebSocket configuration
 responses redact secret environment variables and headers; sending `[redacted]`
 back in an update preserves the stored value.
 
@@ -490,6 +492,12 @@ notifications. Server/tool allowlists, timeouts, bounded results, secret
 redaction, same-origin HTTP redirects, and connection diagnostics are enforced.
 The outward `dire-agent mcp` bridge (and the legacy `dire-agent-mcp` wrapper) is
 rejected as an inward server to prevent recursion.
+
+Define reusable servers in Settings → Global MCP registry. Each conversation has a
+three-state control in its details drawer: **Inherit** follows the configured
+default, while **On** and **Off** persist a local override. Child-agent threads
+inherit their root project's choice and expose the same explicit override
+through the WebSocket and Go client APIs, subject to their persisted spawn grant.
 
 Extensions use an NDJSON JSON-RPC subprocess protocol rather than loading
 JavaScript, TypeScript, or Go plugins into daemon memory. A local source must be

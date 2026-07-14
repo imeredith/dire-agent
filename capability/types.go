@@ -20,6 +20,9 @@ type Scope struct {
 	CWD               string
 	AdditionalFolders []string
 	Builtins          []string
+	// MCPServerOverrides is the final, conversation-local enablement layer.
+	// Servers absent from this map inherit their configured Enabled value.
+	MCPServerOverrides map[string]bool
 }
 
 type Descriptor struct {

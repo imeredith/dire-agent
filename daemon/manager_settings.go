@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dire-kiwi/dire-agent/capability"
+	"github.com/dire-kiwi/dire-agent/configuration"
 	"github.com/dire-kiwi/dire-agent/skills"
 	"github.com/dire-kiwi/dire-agent/threadstore"
 )
@@ -62,14 +63,50 @@ func (m *Manager) UpdateSettings(ctx context.Context, id string, update Settings
 		runtime.mu.Unlock()
 		return threadstore.Thread{}, errors.New("daemon: follow-up mode must be all or one-at-a-time")
 	}
+	var mcpServerOverrides map[string]bool
+	if update.MCPServer != nil {
+		name := strings.TrimSpace(update.MCPServer.Name)
+		if name == "" {
+			runtime.mu.Unlock()
+			return threadstore.Thread{}, errors.New("daemon: MCP server name is required")
+		}
+		if update.MCPServer.Enabled != nil && m.config.Settings != nil {
+			settings, settingsErr := m.runtimeSettings(ctx, configScopeID(runtime.thread))
+			if settingsErr != nil {
+				runtime.mu.Unlock()
+				return threadstore.Thread{}, settingsErr
+			}
+			if _, configured := settings.MCP.Servers[name]; !configured {
+				runtime.mu.Unlock()
+				return threadstore.Thread{}, errors.New("daemon: unknown MCP server " + name)
+			}
+		}
+		if update.MCPServer.Enabled != nil && *update.MCPServer.Enabled && runtime.thread.IsSubagent() &&
+			!subagentHasMCPServerGrant(runtime.thread, name) {
+			runtime.mu.Unlock()
+			return threadstore.Thread{}, errors.New("daemon: MCP server " + name + " was not granted when this child thread was spawned")
+		}
+		mcpServerOverrides = cloneBoolMap(runtime.thread.MCPServerOverrides)
+		if mcpServerOverrides == nil {
+			mcpServerOverrides = make(map[string]bool)
+		}
+		if update.MCPServer.Enabled == nil {
+			delete(mcpServerOverrides, name)
+		} else {
+			mcpServerOverrides[name] = *update.MCPServer.Enabled
+		}
+	}
 	var updatedSnapshot *capability.Snapshot
-	if update.Tools != nil || update.AdditionalFolders != nil {
+	if update.Tools != nil || update.AdditionalFolders != nil || update.MCPServer != nil {
 		candidate := runtime.thread
 		if update.Tools != nil {
 			candidate.Tools = append([]string(nil), (*update.Tools)...)
 		}
 		if update.AdditionalFolders != nil {
 			candidate.AdditionalFolders = append([]string(nil), additionalFolders...)
+		}
+		if update.MCPServer != nil {
+			candidate.MCPServerOverrides = cloneBoolMap(mcpServerOverrides)
 		}
 		if candidate.ResourceKind() == threadstore.KindChat && len(candidate.Tools) != 0 {
 			runtime.mu.Unlock()
@@ -118,6 +155,9 @@ func (m *Manager) UpdateSettings(ctx context.Context, id string, update Settings
 	if update.FollowUpMode != nil {
 		runtime.thread.FollowUpMode = *update.FollowUpMode
 	}
+	if update.MCPServer != nil {
+		runtime.thread.MCPServerOverrides = cloneBoolMap(mcpServerOverrides)
+	}
 	if updatedSnapshot != nil {
 		if update.Tools != nil {
 			runtime.thread.Tools = append([]string(nil), (*update.Tools)...)
@@ -152,12 +192,39 @@ func (m *Manager) UpdateSettings(ctx context.Context, id string, update Settings
 	thread := runtime.thread
 	thread.Tools = append([]string(nil), thread.Tools...)
 	thread.AdditionalFolders = append([]string(nil), thread.AdditionalFolders...)
+	thread.MCPServerOverrides = cloneBoolMap(thread.MCPServerOverrides)
 	runtime.mu.Unlock()
 	if err := runtime.persistThread(ctx); err != nil {
 		return threadstore.Thread{}, err
 	}
+	if update.MCPServer != nil && !thread.IsSubagent() {
+		m.refreshMCPDependents(ctx, thread.ID)
+	}
 	m.emitResourceUpdated(runtime, thread)
+	if updatedSnapshot != nil {
+		m.emit(ctx, runtime, "capabilities_updated", map[string]bool{"refreshed": true})
+	}
 	return thread, nil
+}
+
+func validateMCPServerOverrides(overrides map[string]bool, settings configuration.Settings) error {
+	for name := range overrides {
+		if _, configured := settings.MCP.Servers[name]; !configured {
+			return errors.New("daemon: unknown MCP server " + name)
+		}
+	}
+	return nil
+}
+
+func subagentHasMCPServerGrant(thread threadstore.Thread, server string) bool {
+	toolPrefix := "mcp__" + server + "__"
+	contextPrefix := "mcpctx__" + server + "__"
+	for _, name := range thread.AgentTools {
+		if strings.HasPrefix(name, toolPrefix) || strings.HasPrefix(name, contextPrefix) {
+			return true
+		}
+	}
+	return false
 }
 
 func validQueueMode(mode string) bool { return mode == "all" || mode == "one-at-a-time" }

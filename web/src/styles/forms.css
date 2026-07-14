@@ -128,6 +128,17 @@ select { accent-color: var(--accent); }
 .tool-chip.checked { border-color: #4c3834; background: var(--accent-soft); color: #e5aa9d; }
 .tool-chip input { width: 10px; height: 10px; margin: 0; }
 .capability-list { display: grid; gap: 4px; }
+.mcp-registry-help { margin: -1px 0 9px; }
+.mcp-registry-list { display: grid; gap: 5px; }
+.mcp-registry-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) 82px; align-items: center; gap: 7px; border: 1px solid var(--line-soft); border-radius: 7px; background: #0b0e12; padding: 8px; color: var(--muted); }
+.mcp-registry-copy { display: grid; min-width: 0; gap: 2px; }
+.mcp-registry-copy strong,
+.mcp-registry-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mcp-registry-copy strong { color: #cdd2d9; font-family: var(--font-mono); font-size: 9px; }
+.mcp-registry-copy small { color: var(--muted-2); font-size: 8px; }
+.mcp-registry-copy .mcp-registry-status { display: flex; align-items: center; gap: 5px; }
+.mcp-registry-row select { width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 7px; outline: 0; background: #0a0d11; padding: 6px; color: var(--text-soft); font-size: 9px; }
+.mcp-registry-row select:focus { border-color: #4d5663; }
 .capability-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) 8px; align-items: center; gap: 7px; border: 1px solid var(--line-soft); border-radius: 7px; background: #0b0e12; padding: 7px 8px; color: var(--muted); }
 .capability-row > div { display: grid; min-width: 0; gap: 2px; }
 .capability-row strong,
